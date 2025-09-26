@@ -17,7 +17,7 @@ export const buscarResoluciones = async (terminoBusqueda, setResoluciones, setEr
     
     const data = await response.json();
     
-    console.log("Datos de búsqueda recibidos:", data);
+    
     
     if (data.success) {
       const resolucionesMapeadas = data.data.map(resolucion => ({

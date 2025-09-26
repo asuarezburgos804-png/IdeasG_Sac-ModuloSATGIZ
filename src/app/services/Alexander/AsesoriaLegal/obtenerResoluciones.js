@@ -16,8 +16,8 @@ export const obtenerResoluciones = async (setResoluciones, setErrorMessage, setE
     
     const data = await response.json();
     
-    // Log para diagnóstico
-    console.log("Datos de resoluciones recibidos:", data);
+    
+    
     
     if (data.success) {
       // Mapear los campos del backend a los nombres esperados por el frontend

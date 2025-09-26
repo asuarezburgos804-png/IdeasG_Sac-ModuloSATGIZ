@@ -17,7 +17,6 @@ import { handleRegistrar } from "@/app/services/Alexander/MesaDePartes/handleReg
 import SuccessModal from "@/components/custom/custom_Alexander/CustomMesaDeParte/successModal";
 import ErrorModal from "@/components/custom/custom_Alexander/CustomMesaDeParte/errorModal";
 
-//Define estados y funciones que va a presentar la interraccion con el cuadro
 export default function MesaDePartesRol() {
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState([]);
@@ -28,6 +27,9 @@ export default function MesaDePartesRol() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Estado para manejar las claves seleccionadas del Select
+  const [selectedTecnicoKeys, setSelectedTecnicoKeys] = useState(new Set([]));
 
   // Efecto para búsqueda progresiva
   useEffect(() => {
@@ -46,7 +48,39 @@ export default function MesaDePartesRol() {
     obtenerTecnicos(setTecnicosList, setErrorMessage, setError);
   }, []);
 
-  //Esta parte es la que visualiza
+  // Efecto para sincronizar el estado del técnico con las claves seleccionadas
+  useEffect(() => {
+    if (tecnico) {
+      setSelectedTecnicoKeys(new Set([tecnico]));
+    } else {
+      setSelectedTecnicoKeys(new Set([]));
+    }
+  }, [tecnico]);
+
+  // Función para manejar la selección de técnico
+  const handleTecnicoChange = (keys) => {
+    const keysArray = Array.from(keys);
+    if (keysArray.length > 0) {
+      const selectedKey = keysArray[0];
+      setTecnico(selectedKey);
+      setSelectedTecnicoKeys(new Set([selectedKey]));
+    } else {
+      setTecnico("");
+      setSelectedTecnicoKeys(new Set([]));
+    }
+  };
+
+  // Función para obtener el nombre del técnico seleccionado
+  const getNombreTecnicoSeleccionado = () => {
+    if (!tecnico) return "";
+    const tecnicoSeleccionado = tecnicosList.find(
+      (t) => String(t.id_tecnico) === tecnico
+    );
+    return tecnicoSeleccionado
+      ? `${tecnicoSeleccionado.c_nombre_tecnico} - ${tecnicoSeleccionado.c_dni_tecnico}`
+      : "";
+  };
+
   return (
     <div className="p-4 max-w-lg mx-auto">
       <Card>
@@ -101,7 +135,12 @@ export default function MesaDePartesRol() {
               <Button
                 size="sm"
                 variant="light"
-                onPress={() => setSeleccionado(null)}
+                onPress={() => {
+                  setSeleccionado(null);
+                  setExpediente("");
+                  setTecnico("");
+                  setSelectedTecnicoKeys(new Set([]));
+                }}
                 className="mb-2"
               >
                 &lt;&lt; Volver atrás
@@ -124,25 +163,27 @@ export default function MesaDePartesRol() {
                 onChange={(e) => setExpediente(e.target.value)}
                 className="mb-2"
               />
+
+              {/* Select de técnico corregido */}
               <Select
                 label="Técnico"
                 placeholder="Seleccione un técnico"
-                selectedKeys={tecnico ? new Set([tecnico]) : new Set()}
-                onSelectionChange={(keys) => {
-                  const keyArray = Array.from(keys);
-                  setTecnico(keyArray[0] || "");
-                }}
+                selectedKeys={selectedTecnicoKeys}
+                onSelectionChange={handleTecnicoChange}
                 className="mb-2 w-full"
+                disallowEmptySelection
               >
                 {tecnicosList.map((t) => (
                   <SelectItem
-                    key={String(t.id_proyectista)}
-                    value={String(t.id_proyectista)}
+                    key={String(t.id_tecnico)}
+                    value={String(t.id_tecnico)}
+                    textValue={`${t.c_nombre_tecnico} - ${t.c_dni_tecnico}`}
                   >
-                    {t.c_nombre} - {t.c_num_colegiado}
+                    {t.c_nombre_tecnico} - {t.c_dni_tecnico}
                   </SelectItem>
                 ))}
               </Select>
+
               <Button
                 color="primary"
                 onPress={() =>
@@ -160,6 +201,7 @@ export default function MesaDePartesRol() {
                     setBusqueda
                   )
                 }
+                isDisabled={!expediente || !tecnico}
               >
                 Registrar
               </Button>
