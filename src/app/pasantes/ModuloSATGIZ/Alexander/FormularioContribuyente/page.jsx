@@ -109,15 +109,15 @@ export default function MantenimientoContribuyente() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse border border-gray-300">
+                <table className="min-w-full border-collapse border border-#d1d5dc">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border border-gray-300 p-2 text-left">Tipo Contribuyente</th>
-                      <th className="border border-gray-300 p-2 text-left">Nombre/Razón Social</th>
-                      <th className="border border-gray-300 p-2 text-left">Nro. Doc./RUC</th>
-                      <th className="border border-gray-300 p-2 text-left">Estado</th>
-                      <th className="border border-gray-300 p-2 text-left">Registro</th>
-                      <th className="border border-gray-300 p-2 text-left">Editar</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Tipo Contribuyente</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Nombre/Razón Social</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Nro. Doc./RUC</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Estado</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Registro</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Editar</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -129,27 +129,27 @@ export default function MantenimientoContribuyente() {
                       </tr>
                     ) : resultados.length > 0 ? (
                       resultados.map((contribuyente) => (
-                        <tr key={contribuyente.id} className="border-b hover:bg-blue-50">
-                          <td className="p-2 border border-gray-300">{contribuyente.tipoContribuyente}</td>
-                          <td className="p-2 border border-gray-300">{contribuyente.nombre}</td>
-                          <td className="p-2 border border-gray-300">{contribuyente.documento}</td>
-                          <td className="p-2 border border-gray-300">
+                        <tr key={contribuyente.id} className="border-b hover:bg-#eff6ff">
+                          <td className="p-2 border border-#d1d5dc">{contribuyente.tipoContribuyente}</td>
+                          <td className="p-2 border border-#d1d5dc">{contribuyente.nombre}</td>
+                          <td className="p-2 border border-#d1d5dc">{contribuyente.documento}</td>
+                          <td className="p-2 border border-#d1d5dc">
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               contribuyente.estado === "ACTIVO" 
-                                ? "bg-green-100 text-green-800" 
-                                : "bg-red-100 text-red-800"
+                                ? "bg-#016630 text-#016630" 
+                                : "bg-#ffe2e2 text-#9f0712"
                             }`}>
                               {contribuyente.estado}
                             </span>
                           </td>
-                          <td className="p-2 border border-gray-300 text-center">
+                          <td className="p-2 border border-#d1d5dc text-center">
                             {contribuyente.registrado ? (
-                              <span className="text-green-600 font-bold text-xl">✓</span>
+                              <span className="text-#00a63e font-bold text-xl">✓</span>
                             ) : (
-                              <span className="text-red-600 font-bold text-xl">✗</span>
+                              <span className="text-#e7000b font-bold text-xl">✗</span>
                             )}
                           </td>
-                          <td className="p-2 border border-gray-300">
+                          <td className="p-2 border border-#d1d5dc">
                             <Button
                               size="sm"
                               color="primary"
@@ -162,7 +162,7 @@ export default function MantenimientoContribuyente() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="p-4 text-center text-gray-500">
+                        <td colSpan="6" className="p-4 text-center text-#6a7282">
                           {busqueda ? "No se encontraron resultados" : "Ingrese un término de búsqueda"}
                         </td>
                       </tr>
@@ -193,7 +193,7 @@ export default function MantenimientoContribuyente() {
                 &lt;&lt; Volver atrás
               </Button>
 
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+              <div className="bg-#dcfce7 border border-#05df72 text-#008236 px-4 py-3 rounded relative mb-4">
                 <span className="block sm:inline">
                   Los datos del contribuyente fueron actualizados exitosamente.
                 </span>
@@ -342,7 +342,7 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
               onChange={(e) => handleChange("registrado", e.target.checked)}
               className="h-5 w-5 rounded border-#d1d5dc text-#0084d1 focus:ring-#615fff"
             />
-            <label htmlFor="registrado" className="text-sm font-medium text-gray-700">
+            <label htmlFor="registrado" className="text-sm font-medium text-#4a5565">
               Contribuyente Registrado
             </label>
           </div>
