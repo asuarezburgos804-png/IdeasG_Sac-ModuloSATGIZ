@@ -332,6 +332,20 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
             onChange={(e) => handleChange("email", e.target.value)}
             className="md:col-span-2"
           />
+
+          {/* NUEVO CAMPO REGISTRADO */}
+          <div className="md:col-span-2 flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="registrado"
+              checked={formData.registrado}
+              onChange={(e) => handleChange("registrado", e.target.checked)}
+              className="h-5 w-5 rounded border-#d1d5dc text-#0084d1 focus:ring-#615fff"
+            />
+            <label htmlFor="registrado" className="text-sm font-medium text-gray-700">
+              Contribuyente Registrado
+            </label>
+          </div>
         </div>
 
         <Divider className="my-6" />
