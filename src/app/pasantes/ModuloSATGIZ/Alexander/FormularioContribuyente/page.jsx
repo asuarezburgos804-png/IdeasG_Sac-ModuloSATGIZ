@@ -9,12 +9,14 @@ import {
   Button,
   Input,
 } from "@nextui-org/react";
-import mantenimientoContribuyenteService from "@/app/services/Alexander/MantenimientoContribuyente/MantenimientoContribuyenteService";
+import ContribuyenteService from "@/app/services/SATGIZ/contribuyenteService";
+import UbicacionContribuyenteService from "@/app/services/SATGIZ/ubicacionContribuyenteService";
 
 export default function MantenimientoContribuyente() {
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState([]);
-  const [contribuyenteSeleccionado, setContribuyenteSeleccionado] = useState(null);
+  const [contribuyenteSeleccionado, setContribuyenteSeleccionado] =
+    useState(null);
   const [modo, setModo] = useState("lista");
   const [cargando, setCargando] = useState(false);
 
@@ -28,8 +30,29 @@ export default function MantenimientoContribuyente() {
 
       try {
         setCargando(true);
-        const contribuyentes = await mantenimientoContribuyenteService.buscarContribuyentes(busqueda);
-        setResultados(contribuyentes);
+        const todosContribuyentes = await ContribuyenteService.obtenerTodos();
+
+        // Filtrar contribuyentes por nombre o documento
+        const terminoLower = busqueda.toLowerCase();
+        const contribuyentesFiltrados = todosContribuyentes.filter(
+          (contribuyente) =>
+            contribuyente.c_nombre?.toLowerCase().includes(terminoLower) ||
+            contribuyente.c_num_documento?.includes(busqueda)
+        );
+
+        // Mapear a formato esperado por la UI
+        const resultadosMapeados = contribuyentesFiltrados.map(
+          (contribuyente) => ({
+            id: contribuyente.c_num_documento,
+            tipoContribuyente: contribuyente.c_tipo_contribuyente,
+            nombre: contribuyente.c_nombre,
+            documento: contribuyente.c_num_documento,
+            estado: "ACTIVO", // Valor por defecto, no hay este campo en la bd
+            registrado: true, // Valor por defecto, no tenemos el campo en la bd
+          })
+        );
+
+        setResultados(resultadosMapeados);
       } catch (error) {
         console.error("Error en búsqueda:", error);
         setResultados([]);
@@ -45,7 +68,46 @@ export default function MantenimientoContribuyente() {
   const handleSeleccionarContribuyente = async (contribuyente) => {
     try {
       setCargando(true);
-      const datosCompletos = await mantenimientoContribuyenteService.obtenerContribuyentePorId(contribuyente.id);
+      // Obtener datos del contribuyente
+      const datosContribuyente = await ContribuyenteService.obtenerPorDocumento(
+        contribuyente.id
+      );
+
+      // Obtener ubicaciones del contribuyente
+      const ubicaciones =
+        await UbicacionContribuyenteService.obtenerPorContribuyente(
+          contribuyente.id
+        );
+      const primeraUbicacion = ubicaciones.length > 0 ? ubicaciones[0] : {};
+
+      // Combinar datos del contribuyente con la primera ubicación
+      const datosCompletos = {
+        ...datosContribuyente,
+        ...primeraUbicacion,
+        // Mapear campos para compatibilidad con el formulario
+        tipoDocumento: datosContribuyente.c_tipo_documento,
+        numeroDocumento: datosContribuyente.c_num_documento,
+        tipoContribuyente: datosContribuyente.c_tipo_contribuyente,
+        nombre: datosContribuyente.c_nombre,
+        condicionEspecial: datosContribuyente.c_condicion_especial,
+        telefono: datosContribuyente.c_telefono,
+        email: datosContribuyente.c_correo_electronico,
+        registrado: true,
+
+        // Campos de ubicación
+        departamento: primeraUbicacion.c_departamento,
+        provincia: primeraUbicacion.c_provincia,
+        distrito: primeraUbicacion.c_distrito,
+        codVia: primeraUbicacion.c_codigo_via,
+        tipoVia: primeraUbicacion.c_tipo_via,
+        nombreVia: primeraUbicacion.c_nombre_via,
+        nroMunicipal: primeraUbicacion.c_nro_municipal,
+        manzana: primeraUbicacion.c_manzana,
+        lote: primeraUbicacion.c_lote,
+        sector: primeraUbicacion.c_sector,
+        ubicacionId: primeraUbicacion.n_id,
+      };
+
       setContribuyenteSeleccionado(datosCompletos);
       setModo("edicion");
     } catch (error) {
@@ -59,16 +121,76 @@ export default function MantenimientoContribuyente() {
   const handleActualizarContribuyente = async (datosActualizados) => {
     try {
       setCargando(true);
-      const resultado = await mantenimientoContribuyenteService.actualizarContribuyente(datosActualizados);
-      
-      if (resultado.success) {
-        setModo("exito");
-        const contribuyentes = await mantenimientoContribuyenteService.buscarContribuyentes(busqueda);
-        setResultados(contribuyentes);
+
+      // Preparar datos del contribuyente para actualizar
+      const datosContribuyente = {
+        c_tipo_documento: datosActualizados.tipoDocumento,
+        c_tipo_contribuyente: datosActualizados.tipoContribuyente,
+        c_nombre: datosActualizados.nombre,
+        c_condicion_especial: datosActualizados.condicionEspecial,
+        c_telefono: datosActualizados.telefono,
+        c_correo_electronico: datosActualizados.email,
+      };
+
+      // Actualizar contribuyente
+      await ContribuyenteService.actualizar(
+        datosActualizados.numeroDocumento,
+        datosContribuyente
+      );
+
+      // Preparar datos de ubicación
+      const datosUbicacion = {
+        c_num_documento: datosActualizados.numeroDocumento,
+        c_departamento: datosActualizados.departamento,
+        c_provincia: datosActualizados.provincia,
+        c_distrito: datosActualizados.distrito,
+        c_codigo_via: datosActualizados.codVia,
+        c_tipo_via: datosActualizados.tipoVia,
+        c_nombre_via: datosActualizados.nombreVia,
+        c_nro_municipal: datosActualizados.nroMunicipal,
+        c_manzana: datosActualizados.manzana,
+        c_lote: datosActualizados.lote,
+        c_sector: datosActualizados.sector,
+      };
+
+      // Si existe ubicaciónId, actualizar; si no, crear nueva
+      if (datosActualizados.ubicacionId) {
+        await UbicacionContribuyenteService.actualizar(
+          datosActualizados.ubicacionId,
+          datosUbicacion
+        );
+      } else {
+        await UbicacionContribuyenteService.crear(datosUbicacion);
       }
+
+      setModo("exito");
+
+      // Actualizar resultados de búsqueda
+      const todosContribuyentes = await ContribuyenteService.obtenerTodos();
+      const terminoLower = busqueda.toLowerCase();
+      const contribuyentesFiltrados = todosContribuyentes.filter(
+        (contribuyente) =>
+          contribuyente.c_nombre?.toLowerCase().includes(terminoLower) ||
+          contribuyente.c_num_documento?.includes(busqueda)
+      );
+
+      const resultadosMapeados = contribuyentesFiltrados.map(
+        (contribuyente) => ({
+          id: contribuyente.c_num_documento,
+          tipoContribuyente: contribuyente.c_tipo_contribuyente,
+          nombre: contribuyente.c_nombre,
+          documento: contribuyente.c_num_documento,
+          estado: "ACTIVO",
+          registrado: true,
+        })
+      );
+
+      setResultados(resultadosMapeados);
     } catch (error) {
       console.error("Error al actualizar contribuyente:", error);
-      alert("Error al actualizar el contribuyente. Por favor, intente nuevamente.");
+      alert(
+        "Error al actualizar el contribuyente. Por favor, intente nuevamente."
+      );
     } finally {
       setCargando(false);
     }
@@ -112,12 +234,24 @@ export default function MantenimientoContribuyente() {
                 <table className="min-w-full border-collapse border border-#d1d5dc">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border border-#d1d5dc p-2 text-left">Tipo Contribuyente</th>
-                      <th className="border border-#d1d5dc p-2 text-left">Nombre/Razón Social</th>
-                      <th className="border border-#d1d5dc p-2 text-left">Nro. Doc./RUC</th>
-                      <th className="border border-#d1d5dc p-2 text-left">Estado</th>
-                      <th className="border border-#d1d5dc p-2 text-left">Registro</th>
-                      <th className="border border-#d1d5dc p-2 text-left">Editar</th>
+                      <th className="border border-#d1d5dc p-2 text-left">
+                        Tipo Contribuyente
+                      </th>
+                      <th className="border border-#d1d5dc p-2 text-left">
+                        Nombre/Razón Social
+                      </th>
+                      <th className="border border-#d1d5dc p-2 text-left">
+                        Nro. Doc./RUC
+                      </th>
+                      <th className="border border-#d1d5dc p-2 text-left">
+                        Estado
+                      </th>
+                      <th className="border border-#d1d5dc p-2 text-left">
+                        Registro
+                      </th>
+                      <th className="border border-#d1d5dc p-2 text-left">
+                        Editar
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -129,31 +263,48 @@ export default function MantenimientoContribuyente() {
                       </tr>
                     ) : resultados.length > 0 ? (
                       resultados.map((contribuyente) => (
-                        <tr key={contribuyente.id} className="border-b hover:bg-#eff6ff">
-                          <td className="p-2 border border-#d1d5dc">{contribuyente.tipoContribuyente}</td>
-                          <td className="p-2 border border-#d1d5dc">{contribuyente.nombre}</td>
-                          <td className="p-2 border border-#d1d5dc">{contribuyente.documento}</td>
+                        <tr
+                          key={contribuyente.id}
+                          className="border-b hover:bg-#eff6ff"
+                        >
                           <td className="p-2 border border-#d1d5dc">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              contribuyente.estado === "ACTIVO" 
-                                ? "bg-#016630 text-#016630" 
-                                : "bg-#ffe2e2 text-#9f0712"
-                            }`}>
+                            {contribuyente.tipoContribuyente}
+                          </td>
+                          <td className="p-2 border border-#d1d5dc">
+                            {contribuyente.nombre}
+                          </td>
+                          <td className="p-2 border border-#d1d5dc">
+                            {contribuyente.documento}
+                          </td>
+                          <td className="p-2 border border-#d1d5dc">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${
+                                contribuyente.estado === "ACTIVO"
+                                  ? "bg-#016630 text-#016630"
+                                  : "bg-#ffe2e2 text-#9f0712"
+                              }`}
+                            >
                               {contribuyente.estado}
                             </span>
                           </td>
                           <td className="p-2 border border-#d1d5dc text-center">
                             {contribuyente.registrado ? (
-                              <span className="text-#00a63e font-bold text-xl">✓</span>
+                              <span className="text-#00a63e font-bold text-xl">
+                                ✓
+                              </span>
                             ) : (
-                              <span className="text-#e7000b font-bold text-xl">✗</span>
+                              <span className="text-#e7000b font-bold text-xl">
+                                ✗
+                              </span>
                             )}
                           </td>
                           <td className="p-2 border border-#d1d5dc">
                             <Button
                               size="sm"
                               color="primary"
-                              onPress={() => handleSeleccionarContribuyente(contribuyente)}
+                              onPress={() =>
+                                handleSeleccionarContribuyente(contribuyente)
+                              }
                             >
                               Editar
                             </Button>
@@ -162,8 +313,13 @@ export default function MantenimientoContribuyente() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="p-4 text-center text-#6a7282">
-                          {busqueda ? "No se encontraron resultados" : "Ingrese un término de búsqueda"}
+                        <td
+                          colSpan="6"
+                          className="p-4 text-center text-#6a7282"
+                        >
+                          {busqueda
+                            ? "No se encontraron resultados"
+                            : "Ingrese un término de búsqueda"}
                         </td>
                       </tr>
                     )}
@@ -207,13 +363,18 @@ export default function MantenimientoContribuyente() {
 }
 
 // Componente de formulario
-function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) {
+function FormularioEdicion({
+  contribuyente,
+  onActualizar,
+  onVolver,
+  cargando,
+}) {
   const [formData, setFormData] = useState(contribuyente);
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -225,41 +386,30 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
   const tiposDocumento = [
     { value: "DNI", label: "DNI" },
     { value: "RUC", label: "RUC" },
-    { value: "CE", label: "Carnet de Extranjería" }
+    { value: "CE", label: "Carnet de Extranjería" },
   ];
 
   const tiposContribuyente = [
     { value: "PERSONA NATURAL", label: "Persona Natural" },
-    { value: "PERSONA JURIDICA", label: "Persona Jurídica" }
+    { value: "PERSONA JURIDICA", label: "Persona Jurídica" },
   ];
 
-  const departamentos = [
-    { value: "CUSCO", label: "Cusco" }
-  ];
+  const departamentos = [{ value: "CUSCO", label: "Cusco" }];
 
-  const provincias = [
-    { value: "LA CONVENCIÓN", label: "La Convención" }
-  ];
+  const provincias = [{ value: "LA CONVENCIÓN", label: "La Convención" }];
 
-  const distritos = [
-    { value: "KIMBIRI", label: "Kimbiri" }
-  ];
+  const distritos = [{ value: "KIMBIRI", label: "Kimbiri" }];
 
   const tiposVia = [
     { value: "AVENIDA", label: "Avenida" },
     { value: "JIRON", label: "Jirón" },
     { value: "CALLE", label: "Calle" },
-    { value: "PASAJE", label: "Pasaje" }
+    { value: "PASAJE", label: "Pasaje" },
   ];
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="light"
-        onPress={onVolver}
-        className="mb-4"
-      >
+      <Button size="sm" variant="light" onPress={onVolver} className="mb-4">
         &lt;&lt; Volver atrás
       </Button>
 
@@ -268,7 +418,9 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium mb-1">Tipo de Documento</label>
+            <label className="block text-sm font-medium mb-1">
+              Tipo de Documento
+            </label>
             <select
               className="w-full p-2 border rounded"
               value={formData.tipoDocumento}
@@ -291,11 +443,15 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
           />
 
           <div>
-            <label className="block text-sm font-medium mb-1">Tipo de Contribuyente</label>
+            <label className="block text-sm font-medium mb-1">
+              Tipo de Contribuyente
+            </label>
             <select
               className="w-full p-2 border rounded"
               value={formData.tipoContribuyente}
-              onChange={(e) => handleChange("tipoContribuyente", e.target.value)}
+              onChange={(e) =>
+                handleChange("tipoContribuyente", e.target.value)
+              }
             >
               <option value="">Seleccionar Tipo Contribuyente</option>
               {tiposContribuyente.map((tipo) => (
@@ -342,7 +498,10 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
               onChange={(e) => handleChange("registrado", e.target.checked)}
               className="h-5 w-5 rounded border-#d1d5dc text-#0084d1 focus:ring-#615fff"
             />
-            <label htmlFor="registrado" className="text-sm font-medium text-#4a5565">
+            <label
+              htmlFor="registrado"
+              className="text-sm font-medium text-#4a5565"
+            >
               Contribuyente Registrado
             </label>
           </div>
@@ -350,11 +509,15 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
 
         <Divider className="my-6" />
 
-        <h4 className="text-md font-semibold mb-4">Ubicación del Contribuyente</h4>
+        <h4 className="text-md font-semibold mb-4">
+          Ubicación del Contribuyente
+        </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium mb-1">Departamento</label>
+            <label className="block text-sm font-medium mb-1">
+              Departamento
+            </label>
             <select
               className="w-full p-2 border rounded"
               value={formData.departamento}
@@ -410,7 +573,9 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
           />
 
           <div>
-            <label className="block text-sm font-medium mb-1">Tipo de Vía</label>
+            <label className="block text-sm font-medium mb-1">
+              Tipo de Vía
+            </label>
             <select
               className="w-full p-2 border rounded"
               value={formData.tipoVia}
@@ -462,9 +627,9 @@ function FormularioEdicion({ contribuyente, onActualizar, onVolver, cargando }) 
           <Button onPress={onVolver} variant="flat">
             Cancelar
           </Button>
-          <Button 
-            type="submit" 
-            color="primary" 
+          <Button
+            type="submit"
+            color="primary"
             isLoading={cargando}
             isDisabled={cargando}
           >
