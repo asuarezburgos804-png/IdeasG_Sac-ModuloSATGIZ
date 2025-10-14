@@ -1,120 +1,59 @@
+import {
+  fetchUbicacionPredioMaestros,
+  getDepartamentos,
+  getProvincias,
+  getDistritos,
+  fetchTipoVias,
+  fetchTipoDoc,
+  fetchCondTitular,
+  fetchEstCivil,
+  fetchTipoPerJuridica,
+  fetchFormaAdqui,
+  fetchClasifPredio,
+  fetchMep,
+  fetchEcs,
+  fetchEcc,
+  fetchUca
+} from "@/app/services/master/master";
+
 class MantenimientoPredioService {
   constructor() {
-    // Lista de contribuyentes disponibles
+    this.maestrosUbicacion = null;
+    this.departamentosApi = [];
+    this.tiposViaApi = [];
+    this.tiposDocumento = [];
+    this.condicionesTitular = [];
+    this.estadosCiviles = [];
+    this.tiposPersonaJuridica = [];
+    this.formasAdquisicion = [];
+    this.clasificacionesPredio = [];
+    this.materialesPredominantes = [];
+    this.estadosConservacion = [];
+    this.estadosConstruccion = [];
+    this.unidadesCatastrales = [];
+
+    // Datos de predios (temporal hasta tener API real)
+    this.prediosData = {
+      "2022": [],
+      "2023": [],
+      "2024": []
+    };
+
+    // Contribuyentes (temporal)
     this.contribuyentes = [
       { documento: "75257565", nombre: "MARIA REYNA ANTUANET RODRIGUEZ CABANILLAS" },
       { documento: "05232717", nombre: "JUAN BOCANEGRA LINAREZ" },
       { documento: "7799915", nombre: "RENZO GARCIA AUQUI" }
     ];
 
-    // Datos temporales de predios por año
-    this.prediosData = {
-      "2022": [
-        {
-          id: 1,
-          codigo: "P001-2022",
-          tipo: "URBANO",
-          ubicacion: "AV. SN Nº 123 MZNA. 123 LOTE 123",
-          area: "100.0 m2",
-          condicion: "HABITADO",
-          documento: "75257565",
-          nombreContribuyente: "MARIA REYNA ANTUANET RODRIGUEZ CABANILLAS"
-        },
-        {
-          id: 2,
-          codigo: "P002-2022", 
-          tipo: "RURAL",
-          ubicacion: "Zona Agricola - Sector A",
-          area: "2.5 ha",
-          condicion: "PRODUCCION",
-          documento: "05232717",
-          nombreContribuyente: "JUAN BOCANEGRA LINAREZ"
-        },
-        {
-          id: 3,
-          codigo: "P003-2022",
-          tipo: "URBANO",
-          ubicacion: "JR. LAS FLORES Nº 456",
-          area: "150.0 m2",
-          condicion: "VACIO",
-          documento: "7799915",
-          nombreContribuyente: "RENZO GARCIA AUQUI"
-        }
-      ],
-      "2023": [
-        {
-          id: 4,
-          codigo: "P001-2023",
-          tipo: "URBANO",
-          ubicacion: "AV. LAS AMERICAS Nº 789",
-          area: "120.0 m2",
-          condicion: "HABITADO",
-          documento: "75257565",
-          nombreContribuyente: "MARIA REYNA ANTUANET RODRIGUEZ CABANILLAS"
-        },
-        {
-          id: 5,
-          codigo: "P002-2023", 
-          tipo: "RURAL",
-          ubicacion: "Zona Ganadera - Sector B",
-          area: "5.0 ha",
-          condicion: "PRODUCCION",
-          documento: "05232717",
-          nombreContribuyente: "JUAN BOCANEGRA LINAREZ"
-        }
-      ],
-      "2024": [
-        {
-          id: 6,
-          codigo: "P001-2024",
-          tipo: "URBANO",
-          ubicacion: "AV. NUEVA Nº 321",
-          area: "200.0 m2",
-          condicion: "CONSTRUCCION",
-          documento: "7799915",
-          nombreContribuyente: "RENZO GARCIA AUQUI"
-        }
-      ]
-    };
-
-    this.departamentos = [
+    // Datos estáticos como respaldo
+    this.departamentosBackup = [
       { value: "CUSCO", label: "Cusco" },
       { value: "LIMA", label: "Lima" },
       { value: "AREQUIPA", label: "Arequipa" }
     ];
 
-    this.provincias = {
-      "CUSCO": [
-        { value: "CUSCO", label: "Cusco" },
-        { value: "LA_CONVENCION", label: "La Convención" },
-        { value: "QUISPICANCHI", label: "Quispicanchi" }
-      ],
-      "LIMA": [
-        { value: "LIMA", label: "Lima" },
-        { value: "HUARAL", label: "Huaral" },
-        { value: "CANTA", label: "Canta" }
-      ],
-      "AREQUIPA": [
-        { value: "AREQUIPA", label: "Arequipa" },
-        { value: "CAYLLOMA", label: "Caylloma" },
-        { value: "CAMANA", label: "Camana" }
-      ]
-    };
-
-    this.distritos = {
-      "CUSCO": [
-        { value: "KIMBIRI", label: "Kimbiri" },
-        { value: "PICHARI", label: "Pichari" },
-        { value: "SANTA_ANA", label: "Santa Ana" }
-      ],
-      "LA_CONVENCION": [
-        { value: "QUILLABAMBA", label: "Quillabamba" },
-        { value: "SANTA_TERESA", label: "Santa Teresa" },
-        { value: "OLLANTAYTAMBO", label: "Ollantaytambo" }
-      ]
-    };
-
-    this.tiposVia = [
+    this.tiposViaBackup = [
       { value: "AVENIDA", label: "Avenida" },
       { value: "JIRON", label: "Jirón" },
       { value: "CALLE", label: "Calle" },
@@ -158,63 +97,70 @@ class MantenimientoPredioService {
     ];
   }
 
-  // Búsqueda progresiva de predios por código, ubicación, área, documento o nombre del contribuyente
-    async buscarPrediosGlobal(termino) {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        if (!termino) {
-          return [];
-        }
+  // ========== MÉTODOS PARA PREDIOS ==========
 
-        // Combinar todos los predios de todos los períodos
-        const todosLosPredios = Object.values(this.prediosData).flat();
-        
-        const resultadosFiltrados = todosLosPredios.filter(predio =>
-          predio.codigo.toLowerCase().includes(termino.toLowerCase()) ||
-          predio.ubicacion.toLowerCase().includes(termino.toLowerCase()) ||
-          predio.area.toLowerCase().includes(termino.toLowerCase()) ||
-          predio.documento.includes(termino) ||
-          predio.nombreContribuyente.toLowerCase().includes(termino.toLowerCase())
-        );
-
-        return resultadosFiltrados;
-      } catch (error) {
-        console.error("Error al buscar predios global:", error);
-        return [];
-      }
-    }
-
-
-  // Verificar si existe un predio (simulación)
-  async verificarPredio(datosPredio) {
+  async buscarPredios(termino, periodo) {
     try {
+      // TODO: Reemplazar con API real cuando esté disponible
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Simulamos verificación por documento del titular
-      const existe = Object.values(this.prediosData).flat().some(predio => 
-        predio.documento === datosPredio.documento
+      if (!termino) {
+        return this.prediosData[periodo] || [];
+      }
+
+      const prediosDelPeriodo = this.prediosData[periodo] || [];
+      
+      const resultadosFiltrados = prediosDelPeriodo.filter(predio =>
+        predio.codigo?.toLowerCase().includes(termino.toLowerCase()) ||
+        predio.ubicacion?.toLowerCase().includes(termino.toLowerCase()) ||
+        predio.area?.toLowerCase().includes(termino.toLowerCase()) ||
+        predio.documento?.includes(termino) ||
+        predio.nombreContribuyente?.toLowerCase().includes(termino.toLowerCase())
       );
 
-      return existe;
+      return resultadosFiltrados;
     } catch (error) {
-      console.error("Error al verificar predio:", error);
-      return false;
+      console.error("Error al buscar predios:", error);
+      return [];
     }
   }
 
-  // Registrar nuevo predio
+  async buscarPrediosGlobal(termino) {
+    try {
+      // TODO: Reemplazar con API real cuando esté disponible
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      if (!termino) {
+        return [];
+      }
+
+      const todosLosPredios = Object.values(this.prediosData).flat();
+      
+      const resultadosFiltrados = todosLosPredios.filter(predio =>
+        predio.codigo?.toLowerCase().includes(termino.toLowerCase()) ||
+        predio.ubicacion?.toLowerCase().includes(termino.toLowerCase()) ||
+        predio.area?.toLowerCase().includes(termino.toLowerCase()) ||
+        predio.documento?.includes(termino) ||
+        predio.nombreContribuyente?.toLowerCase().includes(termino.toLowerCase())
+      );
+
+      return resultadosFiltrados;
+    } catch (error) {
+      console.error("Error al buscar predios global:", error);
+      return [];
+    }
+  }
+
   async registrarPredio(datosPredio, periodo) {
     try {
+      // TODO: Reemplazar con API real cuando esté disponible
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Inicializar array si no existe para el período
       if (!this.prediosData[periodo]) {
         this.prediosData[periodo] = [];
       }
       
-      // Generar un nuevo ID y código
-      const nuevoId = Math.max(0, ...Object.values(this.prediosData).flat().map(p => p.id)) + 1;
+      const nuevoId = Math.max(0, ...Object.values(this.prediosData).flat().map(p => p.id || 0)) + 1;
       const nuevoCodigo = `P${String(this.prediosData[periodo].length + 1).padStart(3, '0')}-${periodo}`;
       
       const nuevoPredio = {
@@ -236,45 +182,349 @@ class MantenimientoPredioService {
     }
   }
 
-  // Obtener predio por ID
-  async obtenerPredioPorId(id, periodo) {
+  // ========== MÉTODOS PARA MAESTROS Y UBICACIÓN ==========
+
+  async cargarMaestrosUbicacion() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      const prediosDelPeriodo = this.prediosData[periodo] || [];
-      const predio = prediosDelPeriodo.find(p => p.id === id);
-      return predio || null;
+      if (!this.maestrosUbicacion) {
+        this.maestrosUbicacion = await fetchUbicacionPredioMaestros();
+      }
+      return this.maestrosUbicacion;
     } catch (error) {
-      console.error("Error al obtener predio:", error);
-      throw error;
+      console.error("Error al cargar maestros de ubicación:", error);
+      return [];
     }
   }
 
-  // Obtener contribuyente por documento
+  async obtenerDepartamentosApi() {
+    try {
+      if (this.departamentosApi.length === 0) {
+        const departamentos = await getDepartamentos();
+        this.departamentosApi = departamentos.map(depto => ({
+          value: depto.id_departamento?.toString(),
+          label: depto.nombre_departamento
+        }));
+      }
+      return this.departamentosApi;
+    } catch (error) {
+      console.error("Error al obtener departamentos:", error);
+      return this.departamentosBackup;
+    }
+  }
+
+  async obtenerProvinciasApi(idDepartamento) {
+    try {
+      const provincias = await getProvincias(idDepartamento);
+      return provincias.map(prov => ({
+        value: prov.id_provincia?.toString(),
+        label: prov.nombre_provincia
+      }));
+    } catch (error) {
+      console.error("Error al obtener provincias:", error);
+      return [];
+    }
+  }
+
+  async obtenerDistritosApi(idProvincia) {
+    try {
+      const distritos = await getDistritos(idProvincia);
+      return distritos.map(dist => ({
+        value: dist.id_distrito?.toString(),
+        label: dist.nombre_distrito
+      }));
+    } catch (error) {
+      console.error("Error al obtener distritos:", error);
+      return [];
+    }
+  }
+
+  async obtenerTiposViaApi() {
+    try {
+      if (this.tiposViaApi.length === 0) {
+        const tiposVia = await fetchTipoVias();
+        this.tiposViaApi = tiposVia.map(via => ({
+          value: via.id_tipo_via?.toString(),
+          label: via.nombre_tipo_via
+        }));
+      }
+      return this.tiposViaApi;
+    } catch (error) {
+      console.error("Error al obtener tipos de vía:", error);
+      return this.tiposViaBackup;
+    }
+  }
+
+  // ========== MÉTODOS PARA MAESTROS GENERALES ==========
+
+  async obtenerTiposDocumento() {
+    try {
+      if (this.tiposDocumento.length === 0) {
+        const tiposDoc = await fetchTipoDoc();
+        this.tiposDocumento = tiposDoc.data?.map(doc => ({
+          value: doc.id_tipo_doc?.toString(),
+          label: doc.descripcion_tipo_doc
+        })) || [];
+      }
+      return this.tiposDocumento;
+    } catch (error) {
+      console.error("Error al obtener tipos de documento:", error);
+      return [];
+    }
+  }
+
+  async obtenerCondicionesTitular() {
+    try {
+      if (this.condicionesTitular.length === 0) {
+        const condiciones = await fetchCondTitular();
+        this.condicionesTitular = condiciones.data?.map(cond => ({
+          value: cond.id_cond_titular?.toString(),
+          label: cond.descripcion_cond_titular
+        })) || [];
+      }
+      return this.condicionesTitular;
+    } catch (error) {
+      console.error("Error al obtener condiciones del titular:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosCiviles() {
+    try {
+      if (this.estadosCiviles.length === 0) {
+        const estados = await fetchEstCivil();
+        this.estadosCiviles = estados.data?.map(estado => ({
+          value: estado.id_est_civil?.toString(),
+          label: estado.descripcion_est_civil
+        })) || [];
+      }
+      return this.estadosCiviles;
+    } catch (error) {
+      console.error("Error al obtener estados civiles:", error);
+      return [];
+    }
+  }
+
+  async obtenerTiposPersonaJuridica() {
+    try {
+      if (this.tiposPersonaJuridica.length === 0) {
+        const tipos = await fetchTipoPerJuridica();
+        this.tiposPersonaJuridica = tipos.data?.map(tipo => ({
+          value: tipo.id_tipo_per_juridica?.toString(),
+          label: tipo.descripcion_tipo_per_juridica
+        })) || [];
+      }
+      return this.tiposPersonaJuridica;
+    } catch (error) {
+      console.error("Error al obtener tipos de persona jurídica:", error);
+      return [];
+    }
+  }
+
+  async obtenerFormasAdquisicion() {
+    try {
+      if (this.formasAdquisicion.length === 0) {
+        const formas = await fetchFormaAdqui();
+        this.formasAdquisicion = formas.data?.map(forma => ({
+          value: forma.id_forma_adqui?.toString(),
+          label: forma.descripcion_forma_adqui
+        })) || [];
+      }
+      return this.formasAdquisicion;
+    } catch (error) {
+      console.error("Error al obtener formas de adquisición:", error);
+      return [];
+    }
+  }
+
+  async obtenerClasificacionesPredio() {
+    try {
+      if (this.clasificacionesPredio.length === 0) {
+        const clasificaciones = await fetchClasifPredio();
+        this.clasificacionesPredio = clasificaciones.data?.map(clasif => ({
+          value: clasif.id_clasif_predio?.toString(),
+          label: clasif.descripcion_clasif_predio
+        })) || [];
+      }
+      return this.clasificacionesPredio;
+    } catch (error) {
+      console.error("Error al obtener clasificaciones de predio:", error);
+      return [];
+    }
+  }
+
+  async obtenerMaterialesPredominantes() {
+    try {
+      if (this.materialesPredominantes.length === 0) {
+        const materiales = await fetchMep();
+        this.materialesPredominantes = materiales.data?.map(mat => ({
+          value: mat.id_mep?.toString(),
+          label: mat.descripcion_mep
+        })) || [];
+      }
+      return this.materialesPredominantes;
+    } catch (error) {
+      console.error("Error al obtener materiales predominantes:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosConservacion() {
+    try {
+      if (this.estadosConservacion.length === 0) {
+        const estados = await fetchEcs();
+        this.estadosConservacion = estados.data?.map(estado => ({
+          value: estado.id_ecs?.toString(),
+          label: estado.descripcion_ecs
+        })) || [];
+      }
+      return this.estadosConservacion;
+    } catch (error) {
+      console.error("Error al obtener estados de conservación:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosConstruccion() {
+    try {
+      if (this.estadosConstruccion.length === 0) {
+        const estados = await fetchEcc();
+        this.estadosConstruccion = estados.data?.map(estado => ({
+          value: estado.id_ecc?.toString(),
+          label: estado.descripcion_ecc
+        })) || [];
+      }
+      return this.estadosConstruccion;
+    } catch (error) {
+      console.error("Error al obtener estados de construcción:", error);
+      return [];
+    }
+  }
+
+  async obtenerUnidadesCatastrales() {
+    try {
+      if (this.unidadesCatastrales.length === 0) {
+        const unidades = await fetchUca();
+        this.unidadesCatastrales = unidades.data?.map(uc => ({
+          value: uc.id_uca?.toString(),
+          label: uc.descripcion_uca
+        })) || [];
+      }
+      return this.unidadesCatastrales;
+    } catch (error) {
+      console.error("Error al obtener unidades catastrales:", error);
+      return [];
+    }
+  }
+
+  // ========== MÉTODOS AUXILIARES ==========
+
   obtenerContribuyentePorDocumento(documento) {
     return this.contribuyentes.find(c => c.documento === documento);
   }
 
-  // Obtener todos los contribuyentes
   obtenerContribuyentes() {
     return this.contribuyentes;
   }
 
-    obtenerProvinciasPorDepartamento(departamento) {
-    return this.provincias[departamento] || [];
+  // Métodos de respaldo para ubicación (usados mientras se cargan los datos de API)
+  obtenerProvinciasPorDepartamento(departamento) {
+    // Esto es temporal hasta que carguemos desde API
+    const provinciasPorDepto = {
+      "CUSCO": [
+        { value: "CUSCO", label: "Cusco" },
+        { value: "LA_CONVENCION", label: "La Convención" }
+      ],
+      "LIMA": [
+        { value: "LIMA", label: "Lima" },
+        { value: "HUARAL", label: "Huaral" }
+      ]
+    };
+    return provinciasPorDepto[departamento] || [];
   }
 
   obtenerDistritosPorProvincia(provincia) {
-    return this.distritos[provincia] || [];
+    // Esto es temporal hasta que carguemos desde API
+    const distritosPorProv = {
+      "CUSCO": [
+        { value: "KIMBIRI", label: "Kimbiri" },
+        { value: "PICHARI", label: "Pichari" }
+      ],
+      "LIMA": [
+        { value: "LIMA", label: "Lima" },
+        { value: "MIRAFLORES", label: "Miraflores" }
+      ]
+    };
+    return distritosPorProv[provincia] || [];
   }
 
-  // Obtener periodos disponibles
-  async obtenerPeriodos() {
-    return [
-      { value: "2022", label: "2022" },
-      { value: "2023", label: "2023" },
-      { value: "2024", label: "2024" }
-    ];
+  async obtenerDatosUbicacion() {
+    try {
+      const [departamentos, tiposVia, maestrosUbicacion] = await Promise.all([
+        this.obtenerDepartamentosApi(),
+        this.obtenerTiposViaApi(),
+        this.cargarMaestrosUbicacion()
+      ]);
+
+      return {
+        departamentos,
+        tiposVia,
+        maestrosUbicacion
+      };
+    } catch (error) {
+      console.error("Error al obtener datos de ubicación:", error);
+      return {
+        departamentos: this.departamentosBackup,
+        tiposVia: this.tiposViaBackup,
+        maestrosUbicacion: []
+      };
+    }
+  }
+
+  async obtenerTodosLosMaestros() {
+    try {
+      const [
+        departamentos,
+        tiposDocumento,
+        condicionesTitular,
+        estadosCiviles,
+        tiposPersonaJuridica,
+        formasAdquisicion,
+        clasificacionesPredio,
+        materialesPredominantes,
+        estadosConservacion,
+        estadosConstruccion,
+        unidadesCatastrales
+      ] = await Promise.all([
+        this.obtenerDepartamentosApi(),
+        this.obtenerTiposDocumento(),
+        this.obtenerCondicionesTitular(),
+        this.obtenerEstadosCiviles(),
+        this.obtenerTiposPersonaJuridica(),
+        this.obtenerFormasAdquisicion(),
+        this.obtenerClasificacionesPredio(),
+        this.obtenerMaterialesPredominantes(),
+        this.obtenerEstadosConservacion(),
+        this.obtenerEstadosConstruccion(),
+        this.obtenerUnidadesCatastrales()
+      ]);
+
+      return {
+        departamentos,
+        tiposDocumento,
+        condicionesTitular,
+        estadosCiviles,
+        tiposPersonaJuridica,
+        formasAdquisicion,
+        clasificacionesPredio,
+        materialesPredominantes,
+        estadosConservacion,
+        estadosConstruccion,
+        unidadesCatastrales
+      };
+    } catch (error) {
+      console.error("Error al cargar todos los maestros:", error);
+      return {};
+    }
   }
 }
 
