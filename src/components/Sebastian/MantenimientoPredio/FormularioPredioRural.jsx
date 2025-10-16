@@ -1,48 +1,123 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Input, Button, Divider, Select, SelectItem } from "@nextui-org/react";
+import { Input, Button, Divider, Select, SelectItem, Spinner } from "@nextui-org/react";
 import mantenimientoPredioService from "@/app/services/Sebastian/MantenimientoPredio/mantenimientoPredioService";
 
 export default function FormularioPredioRural({ formData, onChange, onSave, loading }) {
+  const [departamentos, setDepartamentos] = useState([]);
   const [provincias, setProvincias] = useState([]);
   const [distritos, setDistritos] = useState([]);
+  const [tiposVia, setTiposVia] = useState([]);
+  const [cargandoUbicacion, setCargandoUbicacion] = useState(false);
+  const [errorUbicacion, setErrorUbicacion] = useState("");
 
-  // Actualizar provincias cuando cambie el departamento
+  // Cargar datos iniciales de ubicación
   useEffect(() => {
-    if (formData.departamento) {
-      const nuevasProvincias = mantenimientoPredioService.obtenerProvinciasPorDepartamento(formData.departamento);
-      setProvincias(nuevasProvincias);
-      // Reset provincia y distrito si cambia el departamento
-      onChange("provincia", "");
-      onChange("distrito", "");
-    } else {
-      setProvincias([]);
-    }
-  }, [formData.departamento]);
+    const cargarDatosIniciales = async () => {
+      try {
+        setCargandoUbicacion(true);
+        setErrorUbicacion("");
+        
+        const [deptosData, viasData] = await Promise.all([
+          mantenimientoPredioService.obtenerDepartamentosApi(),
+          mantenimientoPredioService.obtenerTiposViaApi()
+        ]);
+        
+        setDepartamentos(deptosData);
+        setTiposVia(viasData);
+      } catch (error) {
+        console.error("Error al cargar datos de ubicación:", error);
+        setErrorUbicacion("Error al cargar datos de ubicación. Usando datos de respaldo.");
+        
+        // Usar datos de respaldo
+        setDepartamentos(mantenimientoPredioService.departamentosBackup || []);
+        setTiposVia(mantenimientoPredioService.tiposViaBackup || []);
+      } finally {
+        setCargandoUbicacion(false);
+      }
+    };
 
-  // Actualizar distritos cuando cambie la provincia
+    cargarDatosIniciales();
+  }, []);
+
+  // Cargar provincias cuando cambie el departamento
   useEffect(() => {
-    if (formData.provincia) {
-      const nuevosDistritos = mantenimientoPredioService.obtenerDistritosPorProvincia(formData.provincia);
-      setDistritos(nuevosDistritos);
-      // Reset distrito si cambia la provincia
-      onChange("distrito", "");
-    } else {
-      setDistritos([]);
-    }
-  }, [formData.provincia]);
+    const cargarProvincias = async () => {
+      if (formData.departamento) {
+        try {
+          setCargandoUbicacion(true);
+          setErrorUbicacion("");
+          const nuevasProvincias = await mantenimientoPredioService.obtenerProvinciasApi(formData.departamento);
+          setProvincias(nuevasProvincias);
+          // Reset provincia y distrito si cambia el departamento
+          onChange("provincia", "");
+          onChange("distrito", "");
+        } catch (error) {
+          console.error("Error al cargar provincias:", error);
+          setErrorUbicacion("Error al cargar provincias. Usando datos de respaldo.");
+          // Usar método de respaldo
+          const provinciasRespaldo = mantenimientoPredioService.obtenerProvinciasPorDepartamento(formData.departamento);
+          setProvincias(provinciasRespaldo);
+        } finally {
+          setCargandoUbicacion(false);
+        }
+      } else {
+        setProvincias([]);
+        setDistritos([]);
+      }
+    };
+
+    cargarProvincias();
+  }, [formData.departamento, onChange]);
+
+  // Cargar distritos cuando cambie la provincia
+  useEffect(() => {
+    const cargarDistritos = async () => {
+      if (formData.provincia) {
+        try {
+          setCargandoUbicacion(true);
+          setErrorUbicacion("");
+          const nuevosDistritos = await mantenimientoPredioService.obtenerDistritosApi(formData.provincia);
+          setDistritos(nuevosDistritos);
+          // Reset distrito si cambia la provincia
+          onChange("distrito", "");
+        } catch (error) {
+          console.error("Error al cargar distritos:", error);
+          setErrorUbicacion("Error al cargar distritos. Usando datos de respaldo.");
+          // Usar método de respaldo
+          const distritosRespaldo = mantenimientoPredioService.obtenerDistritosPorProvincia(formData.provincia);
+          setDistritos(distritosRespaldo);
+        } finally {
+          setCargandoUbicacion(false);
+        }
+      } else {
+        setDistritos([]);
+      }
+    };
+
+    cargarDistritos();
+  }, [formData.provincia, onChange]);
 
   return (
     <div className="space-y-6">
       {/* SECCIÓN 1: UBICACIÓN DEL PREDIO RURAL */}
       <div>
         <h4 className="text-md font-semibold mb-4">Ubicación del Predio Rural</h4>
+
+        {errorUbicacion && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+            {errorUbicacion}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
             label="Departamento"
             value={formData.departamento || ""}
             onChange={(e) => onChange("departamento", e.target.value)}
+            isLoading={cargandoUbicacion}
+            isDisabled={cargandoUbicacion}
             required
           >
             {mantenimientoPredioService.departamentos.map((depto) => (
@@ -56,7 +131,8 @@ export default function FormularioPredioRural({ formData, onChange, onSave, load
             label="Provincia"
             value={formData.provincia || ""}
             onChange={(e) => onChange("provincia", e.target.value)}
-            isDisabled={!formData.departamento}
+            isDisabled={!formData.departamento || cargandoUbicacion}
+            isLoading={cargandoUbicacion}
             required
           >
             {provincias.map((prov) => (
@@ -70,7 +146,8 @@ export default function FormularioPredioRural({ formData, onChange, onSave, load
             label="Distrito"
             value={formData.distrito || ""}
             onChange={(e) => onChange("distrito", e.target.value)}
-            isDisabled={!formData.provincia}
+            isDisabled={!formData.provincia || cargandoUbicacion}
+            isLoading={cargandoUbicacion}
             required
           >
             {distritos.map((dist) => (
@@ -94,6 +171,13 @@ export default function FormularioPredioRural({ formData, onChange, onSave, load
             className="md:col-span-2"
           />
         </div>
+
+        {cargandoUbicacion && (
+          <div className="flex items-center justify-center p-2">
+            <Spinner size="sm" className="mr-2" />
+            <span className="text-sm text-gray-600">Cargando datos de ubicación...</span>
+          </div>
+        )}
       </div>
 
       <Divider />
