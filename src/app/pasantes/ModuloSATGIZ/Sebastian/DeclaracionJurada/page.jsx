@@ -35,17 +35,47 @@ export default function DeclaracionJurada() {
     periodo: new Date().getFullYear().toString(),
 
     // Datos del predio urbano
+    departamento: "",
+    provincia: "",
+    distrito: "",
     codigo_via: "",
     tipo_via: "",
     nombre_via: "",
+    arancel: "",
     numero_municipal: "",
-    manzana: "",
-    lote: "",
-    area_terreno: "",
+    manzana_urbana: "",
+    lote_urbano: "",
+    tipo_denominacion_urbana: "",
+    nombre_denominacion_urbana: "",
+    autoriza_deduccion: "",
+    uso_predio_urbano: "",
+    estado_predio: "",
+    tipo_predio: "",
+    condicion_predio: "",
+    area_total_terreno: "",
+    tiene_agua: "",
+    numero_suministro_agua: "",
+    tiene_luz: "",
+    numero_suministro_luz: "",
+    tiene_desague: "",
+    numero_suministro_desague: "",
     
     // Datos del predio rural
-    zona_rural: "",
+    departamento: "",
+    provincia: "",
+    distrito: "",
+    zona_predio_rural: "",
+    nombre_predio: "",
+    autoriza_deduccion: "",
+    uso_predio_urbano: "",
+    estado_predio: "",
+    tipo_predio: "",
+    condicion_predio: "",
     area_terreno_rural: "",
+    grupo_tierras: "",
+    rango_altitud: "",
+    calidad_agricola: "",
+    valor_categoria: "",
 
     // Características de construcción
     numero_piso: "",
@@ -534,7 +564,22 @@ export default function DeclaracionJurada() {
               <h4 className="font-bold">Ubicación del Predio Urbano</h4>
             </CardHeader>
             <CardBody>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Departamento"
+                  value={formData.departamento}
+                  onChange={(e) => handleInputChange("departamento", e.target.value)}
+                />
+                <Input
+                  label="Provincia"
+                  value={formData.provincia}
+                  onChange={(e) => handleInputChange("provincia", e.target.value)}
+                />
+                <Input
+                  label="Distrito"
+                  value={formData.distrito}
+                  onChange={(e) => handleInputChange("distrito", e.target.value)}
+                />
                 <Input
                   label="Código de Vía"
                   value={formData.codigo_via}
@@ -551,26 +596,161 @@ export default function DeclaracionJurada() {
                   onChange={(e) => handleInputChange("nombre_via", e.target.value)}
                 />
                 <Input
+                  label="Arancel"
+                  value={formData.arancel}
+                  onChange={(e) => handleInputChange("arancel", e.target.value)}
+                  placeholder="S/."
+                />
+                <Input
                   label="Número Municipal"
                   value={formData.numero_municipal}
                   onChange={(e) => handleInputChange("numero_municipal", e.target.value)}
                 />
                 <Input
-                  label="Manzana"
-                  value={formData.manzana}
-                  onChange={(e) => handleInputChange("manzana", e.target.value)}
+                  label="Manzana Urbana"
+                  value={formData.manzana_urbana}
+                  onChange={(e) => handleInputChange("manzana_urbana", e.target.value)}
                 />
                 <Input
-                  label="Lote"
-                  value={formData.lote}
-                  onChange={(e) => handleInputChange("lote", e.target.value)}
+                  label="Lote Urbana"
+                  value={formData.lote_urbana}
+                  onChange={(e) => handleInputChange("lote_urbana", e.target.value)}
                 />
                 <Input
-                  label="Área del Terreno (m²)"
-                  type="number"
-                  value={formData.area_terreno}
-                  onChange={(e) => handleInputChange("area_terreno", e.target.value)}
+                  label="Tipo de Denominación Urbana"
+                  value={formData.tipo_denominacion_urbana}
+                  onChange={(e) => handleInputChange("tipo_denominacion_urbana", e.target.value)}
                 />
+                <Input
+                  label="Nombre de Denominación Urbana"
+                  value={formData.nombre_denominacion_urbana}
+                  onChange={(e) => handleInputChange("nombre_denominacion_urbana", e.target.value)}
+                />
+              </div>
+
+              <Divider className="my-8"/>
+
+              <div>
+                <h4 className="text-md font-semibold mb-4">Deducción del Predio</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.autoriza_deduccion || false}
+                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.checked)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        ¿Se autoriza la deducción?
+                      </span>
+                    </label>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Marque esta casilla si autoriza la deducción aplicable al predio
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Divider className="my-8"/>
+
+              <div>
+                <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Uso del Predio Urbano"
+                    value={formData.uso_predio_urbano}
+                    onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
+                  />
+                  <Input
+                    label="Estado del Predio"
+                    value={formData.estado_predio}
+                    onChange={(e) => handleInputChange("estado_predio", e.target.value)}
+                  />
+                  <Input
+                    label="Tipo de Predio"
+                    value={formData.tipo_predio}
+                    onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
+                  />
+                  <Input
+                    label="Condición del Predio"
+                    value={formData.condicion_predio}
+                    onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
+                  />
+                  <Input
+                    label="Área Total del Terreno (m²)"
+                    type="number"
+                    value={formData.area_total_terreno}
+                    onChange={(e) => handleInputChange("area_total_terreno", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <Divider className="my-8"/>
+
+              <div className="md:col-span-2">
+                <h4 className="text-md font-semibold mb-4">Datos Complementarios del Predio (Servicios Básicos)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Agua */}
+                  <div className="space-y-2">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.tiene_agua || false}
+                        onChange={(e) => handleInputChange("tiene_agua", e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Agua</span>
+                    </label> 
+                    <Input
+                      label="N° de Suministro de Agua"
+                      value={formData.numero_suministro_agua || ""}
+                      onChange={(e) => handleInputChange("numero_suministro_agua", e.target.value)}
+                      isDisabled={!formData.tiene_agua}
+                      size="sm"  
+                    />
+                  </div>
+
+                  {/* Luz */}
+                  <div className="space-y-2">
+                   <label className="flex items-center space-x-2">
+                     <input
+                       type="checkbox"
+                       checked={formData.tiene_luz || false}
+                       onChange={(e) => handleInputChange("tiene_luz", e.target.checked)}
+                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Luz</span>
+                    </label>
+                    <Input
+                      label="N° de Suministro de Luz"
+                      value={formData.numero_suministro_luz || ""}
+                      onChange={(e) => handleInputChange("numero_suministro_luz", e.target.value)}
+                      isDisabled={!formData.tiene_luz}
+                      size="sm"
+                    />
+                  </div>
+
+                  {/* Desagüe */}
+                  <div className="space-y-2">
+                   <label className="flex items-center space-x-2">
+                     <input
+                       type="checkbox"
+                       checked={formData.tiene_desague || false}
+                       onChange={(e) => handleInputChange("tiene_desague", e.target.checked)}
+                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Desagüe</span>
+                    </label>
+                    <Input
+                      label="N° de Suministro de Desagüe"
+                      value={formData.numero_suministro_desague || ""}
+                      onChange={(e) => handleInputChange("numero_suministro_desague", e.target.value)}
+                      isDisabled={!formData.tiene_desague}
+                      size="sm"
+                    />
+                  </div>
+                </div>
               </div>
             </CardBody>
           </Card>
@@ -582,19 +762,110 @@ export default function DeclaracionJurada() {
               <h4 className="font-bold">Ubicación del Predio Rural</h4>
             </CardHeader>
             <CardBody>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
-                  label="Zona donde se encuentra el Predio Rural"
-                  value={formData.zona_rural}
-                  onChange={(e) => handleInputChange("zona_rural", e.target.value)}
+                  label="Departamento"
+                  value={formData.departamento}
+                  onChange={(e) => handleInputChange("departamento", e.target.value)}
                 />
                 <Input
-                  label="Área del Terreno (ha)"
+                  label="Provincia"
+                  value={formData.provincia}
+                  onChange={(e) => handleInputChange("provincia", e.target.value)}
+                />
+                <Input
+                  label="Distrito"
+                  value={formData.distrito}
+                  onChange={(e) => handleInputChange("distrito", e.target.value)}
+                />
+                <Input
+                  label="Zona donde se encuentra el Predio Rural"
+                  value={formData.zona_predio_rural}
+                  onChange={(e) => handleInputChange("zona_predio_rural", e.target.value)}
+                />
+                <Input
+                  label="Nombre del Predio"
+                  value={formData.nombre_predio}
+                  onChange={(e) => handleInputChange("nombre_predio", e.target.value)}
+                />
+              </div>
+
+              <Divider className="my-8"/>
+
+              <div>
+                <h4 className="text-md font-semibold mb-4">Deducción del Predio</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.autoriza_deduccion || false}
+                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.checked)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        ¿Se autoriza la deducción?
+                      </span>
+                    </label>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Marque esta casilla si autoriza la deducción aplicable al predio
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Divider className="my-8"/>
+              <div>
+                <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Uso del Predio Urbano"
+                    value={formData.uso_predio_urbano}
+                    onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
+                  />
+                  <Input
+                    label="Estado del Predio"
+                    value={formData.estado_predio}
+                    onChange={(e) => handleInputChange("estado_predio", e.target.value)}
+                  />
+                  <Input
+                    label="Tipo de Predio"
+                    value={formData.tipo_predio}
+                    onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
+                  />
+                  <Input
+                    label="Condición del Predio"
+                    value={formData.condicion_predio}
+                    onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
+                  />
+                <Input
+                  label="Área del Terreno (HA)"
                   type="number"
                   value={formData.area_terreno_rural}
                   onChange={(e) => handleInputChange("area_terreno_rural", e.target.value)}
                 />
+                <Input
+                  label="Grupo de Tierras"
+                  value={formData.grupo_tierras}
+                  onChange={(e) => handleInputChange("grupo_tierras", e.target.value)}
+                />
+                <Input
+                  label="Rango de Altitud"
+                  value={formData.rango_altitud}
+                  onChange={(e) => handleInputChange("rango_altitud", e.target.value)}
+                />
+                <Input
+                  label="Calidad Agrícola"
+                  value={formData.calidad_agricola}
+                  onChange={(e) => handleInputChange("calidad_agricola", e.target.value)}
+                />
+                <Input
+                  label="Valor por Categoría"
+                  value={formData.valor_categoria}
+                  onChange={(e) => handleInputChange("valor_categoria", e.target.value)}
+                />
               </div>
+             </div>
             </CardBody>
           </Card>
         </div>
@@ -721,9 +992,7 @@ export default function DeclaracionJurada() {
             <Divider className="my-8"/>
 
             <div>
-              <h4 className="font-semibold mb-4 text-gray-700">
-                Información para el Calculo
-              </h4>
+              <h4 className="text-md font-semibold mb-4">Información para el Calculo</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                 label="Valor Unitario (M2)"
