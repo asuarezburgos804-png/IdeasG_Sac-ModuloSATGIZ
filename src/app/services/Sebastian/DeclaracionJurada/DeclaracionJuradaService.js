@@ -1,7 +1,44 @@
+import { 
+  makeGetRequest, 
+  makePostRequest, 
+  makePutRequest, 
+  makeDeleteRequest 
+} from "@/utils/api/api";
+
+import {
+  fetchTipoVias,
+  fetchTipoDoc,
+  getDepartamentos,
+  getProvincias,
+  getDistritos,
+  fetchMep,
+  fetchEcs,
+  fetchEcc,
+  fetchUca,
+  fetchCodUsoPredio,
+  fetchClasifUso,
+  fetchFormaAdquiPredio,
+  fetchConstruccionInst,
+  fetchMaterialPredominante,
+  fetchEstConservacion,
+  fetchEstConstruccion,
+  fetchTipoEvalPredio,
+  fetchTipoTitular,
+  fetchCondTitular,
+  fetchCondDeclarante,
+  fetchEstCivil,
+  fetchTipoPerJuridica,
+  fetchCondEspTitular,
+  fetchFormaAdqui,
+  fetchCondEspPredio,
+  fetchClasifPredio,
+  fetchPredioCatEn
+} from "@/app/services/master/master";
+
 class DeclaracionJuradaService {
   constructor() {
-    // Datos temporales de contribuyentes para Declaración Jurada
-    this.contribuyentes = [
+    // ✅ DATOS TEMPORALES PARA CONTRIBUYENTES (mientras desarrollas backend)
+    this.contribuyentesTemp = [
       {
         c_codigo: "DJ-001-2024",
         c_tipo_contribuyente: "PERSONA NATURAL",
@@ -54,8 +91,8 @@ class DeclaracionJuradaService {
       }
     ];
 
-    // Datos temporales de declaraciones juradas existentes
-    this.declaracionesJuradas = [
+    // ✅ DATOS TEMPORALES PARA DECLARACIONES
+    this.declaracionesTemp = [
       {
         id: 1,
         contribuyente_documento: "12345678",
@@ -121,81 +158,215 @@ class DeclaracionJuradaService {
         deduccion: "15% Zona Residencial Especial",
         area_terreno: "100 m2"
       }
-    ]
-  };
+    ];
+  }
 
-  // ========== MÉTODOS PARA CONTRIBUYENTES ==========
+  // ========== MÉTODOS PARA CONTRIBUYENTES (HÍBRIDOS) ==========
 
   async obtenerTodosContribuyentes() {
     try {
-      // Simular delay de red
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return this.contribuyentes;
+      // 🎯 INTENTAR API PRIMERO
+      const data = await makeGetRequest("/contribuyentes");
+      const contribuyentes = data.data || [];
+      
+      if (contribuyentes.length > 0) {
+        return contribuyentes.map(contribuyente => ({
+          c_codigo: contribuyente.codigo || `DJ-${contribuyente.num_documento}-${new Date().getFullYear()}`,
+          c_tipo_contribuyente: contribuyente.tipo_contribuyente || "PERSONA NATURAL",
+          c_nombre: contribuyente.nombre || contribuyente.razon_social || "N/A",
+          c_num_documento: contribuyente.num_documento || "N/A",
+          c_estado: contribuyente.estado || "ACTIVO",
+          c_direccion: contribuyente.direccion || "",
+          c_telefono: contribuyente.telefono || "",
+          c_email: contribuyente.email || ""
+        }));
+      } else {
+        // 🔄 FALLBACK A DATOS TEMPORALES
+        console.warn("Usando datos temporales de contribuyentes - Backend no disponible");
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return this.contribuyentesTemp;
+      }
     } catch (error) {
-      console.error("Error al obtener contribuyentes:", error);
-      return this.contribuyentes;
+      // 🔄 FALLBACK A DATOS TEMPORALES EN ERROR
+      console.warn("Error al obtener contribuyentes, usando datos temporales:", error);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return this.contribuyentesTemp;
     }
   }
 
   async buscarContribuyentes(termino) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       if (!termino) {
-        return this.contribuyentes;
+        return this.obtenerTodosContribuyentes();
       }
 
-      const terminoLower = termino.toLowerCase();
+      // 🎯 INTENTAR API PRIMERO
+      const data = await makeGetRequest(`/contribuyentes/buscar?q=${encodeURIComponent(termino)}`);
+      const contribuyentes = data.data || [];
       
-      return this.contribuyentes.filter(contribuyente =>
+      if (contribuyentes.length > 0) {
+        return contribuyentes.map(contribuyente => ({
+          c_codigo: contribuyente.codigo || `DJ-${contribuyente.num_documento}-${new Date().getFullYear()}`,
+          c_tipo_contribuyente: contribuyente.tipo_contribuyente || "PERSONA NATURAL",
+          c_nombre: contribuyente.nombre || contribuyente.razon_social || "N/A",
+          c_num_documento: contribuyente.num_documento || "N/A",
+          c_estado: contribuyente.estado || "ACTIVO",
+          c_direccion: contribuyente.direccion || "",
+          c_telefono: contribuyente.telefono || "",
+          c_email: contribuyente.email || ""
+        }));
+      } else {
+        // 🔄 FALLBACK A BÚSQUEDA EN DATOS TEMPORALES
+        console.warn("Buscando en datos temporales - Backend no disponible");
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const terminoLower = termino.toLowerCase();
+        return this.contribuyentesTemp.filter(contribuyente =>
+          contribuyente.c_codigo?.toLowerCase().includes(terminoLower) ||
+          contribuyente.c_tipo_contribuyente?.toLowerCase().includes(terminoLower) ||
+          contribuyente.c_nombre?.toLowerCase().includes(terminoLower) ||
+          contribuyente.c_num_documento?.includes(termino)
+        );
+      }
+    } catch (error) {
+      // 🔄 FALLBACK A BÚSQUEDA EN DATOS TEMPORALES
+      console.warn("Error en búsqueda, usando datos temporales:", error);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const terminoLower = termino.toLowerCase();
+      return this.contribuyentesTemp.filter(contribuyente =>
         contribuyente.c_codigo?.toLowerCase().includes(terminoLower) ||
         contribuyente.c_tipo_contribuyente?.toLowerCase().includes(terminoLower) ||
         contribuyente.c_nombre?.toLowerCase().includes(terminoLower) ||
         contribuyente.c_num_documento?.includes(termino)
       );
-    } catch (error) {
-      console.error("Error al buscar contribuyentes:", error);
-      return this.contribuyentes;
     }
   }
 
   async obtenerContribuyentePorDocumento(documento) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return this.contribuyentes.find(c => c.c_num_documento === documento) || null;
+      // 🎯 INTENTAR API PRIMERO
+      const data = await makeGetRequest(`/contribuyentes/documento/${documento}`);
+      const contribuyente = data.data || null;
+      
+      if (contribuyente) {
+        return {
+          c_codigo: contribuyente.codigo || `DJ-${contribuyente.num_documento}-${new Date().getFullYear()}`,
+          c_tipo_contribuyente: contribuyente.tipo_contribuyente || "PERSONA NATURAL",
+          c_nombre: contribuyente.nombre || contribuyente.razon_social || "N/A",
+          c_num_documento: contribuyente.num_documento || "N/A",
+          c_estado: contribuyente.estado || "ACTIVO",
+          c_direccion: contribuyente.direccion || "",
+          c_telefono: contribuyente.telefono || "",
+          c_email: contribuyente.email || ""
+        };
+      } else {
+        // 🔄 FALLBACK A DATOS TEMPORALES
+        console.warn("Usando datos temporales - Contribuyente no encontrado en backend");
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
+      }
     } catch (error) {
-      console.error("Error al obtener contribuyente:", error);
-      return this.contribuyentes.find(c => c.c_num_documento === documento) || null;
+      // 🔄 FALLBACK A DATOS TEMPORALES
+      console.warn("Error al obtener contribuyente, usando datos temporales:", error);
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
     }
   }
 
-  // ========== MÉTODOS PARA DECLARACIONES JURADAS ==========
+  // ========== MÉTODOS PARA DECLARACIONES (HÍBRIDOS) ==========
 
   async obtenerDeclaracionesPorContribuyente(documento) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return this.declaracionesJuradas.filter(dj => dj.contribuyente_documento === documento);
+      // 🎯 INTENTAR API PRIMERO
+      const data = await makeGetRequest(`/declaraciones-juradas/contribuyente/${documento}`);
+      const declaraciones = data.data || [];
+      
+      if (declaraciones.length > 0) {
+        return declaraciones.map(declaracion => ({
+          id: declaracion.id || declaracion.codigo,
+          contribuyente_documento: declaracion.contribuyente_documento || documento,
+          periodo: declaracion.periodo || new Date().getFullYear().toString(),
+          estado: declaracion.estado || "PENDIENTE",
+          fecha_presentacion: declaracion.fecha_presentacion || new Date().toISOString().split('T')[0],
+          monto_declarado: declaracion.monto_declarado || 0,
+          codigo: declaracion.codigo || `DJ-${documento}-${declaracion.periodo || new Date().getFullYear()}`,
+          tipo_predio: declaracion.tipo_predio || "URBANO",
+          ubicacion: declaracion.ubicacion || "Sin ubicación",
+          deduccion: declaracion.deduccion || "NO",
+          area_terreno: declaracion.area_terreno || "0 m²"
+        }));
+      } else {
+        // 🔄 FALLBACK A DATOS TEMPORALES
+        console.warn("Usando declaraciones temporales - Backend no disponible");
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return this.declaracionesTemp.filter(dj => dj.contribuyente_documento === documento);
+      }
     } catch (error) {
-      console.error("Error al obtener declaraciones:", error);
-      return [];
+      // 🔄 FALLBACK A DATOS TEMPORALES
+      console.warn("Error al obtener declaraciones, usando datos temporales:", error);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return this.declaracionesTemp.filter(dj => dj.contribuyente_documento === documento);
     }
   }
 
   async obtenerDeclaracionPorId(id) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return this.declaracionesJuradas.find(dj => dj.id === id) || null;
+      // 🎯 INTENTAR API PRIMERO
+      const data = await makeGetRequest(`/declaraciones-juradas/${id}`);
+      const declaracion = data.data || null;
+      
+      if (declaracion) {
+        return {
+          id: declaracion.id || declaracion.codigo,
+          contribuyente_documento: declaracion.contribuyente_documento || "",
+          periodo: declaracion.periodo || new Date().getFullYear().toString(),
+          estado: declaracion.estado || "PENDIENTE",
+          fecha_presentacion: declaracion.fecha_presentacion || new Date().toISOString().split('T')[0],
+          monto_declarado: declaracion.monto_declarado || 0,
+          codigo: declaracion.codigo || `DJ-${declaracion.contribuyente_documento || ""}-${declaracion.periodo || new Date().getFullYear()}`,
+          tipo_predio: declaracion.tipo_predio || "URBANO",
+          ubicacion: declaracion.ubicacion || "Sin ubicación",
+          deduccion: declaracion.deduccion || "NO",
+          area_terreno: declaracion.area_terreno || "0 m²"
+        };
+      } else {
+        // 🔄 FALLBACK A DATOS TEMPORALES
+        console.warn("Usando declaración temporal - Backend no disponible");
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return this.declaracionesTemp.find(dj => dj.id === id) || null;
+      }
     } catch (error) {
-      console.error("Error al obtener declaración:", error);
-      return null;
+      // 🔄 FALLBACK A DATOS TEMPORALES
+      console.warn("Error al obtener declaración, usando datos temporales:", error);
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return this.declaracionesTemp.find(dj => dj.id === id) || null;
     }
   }
 
   async crearDeclaracionJurada(datosDeclaracion) {
     try {
+      // 🎯 INTENTAR GUARDAR EN API
+      const datosParaAPI = {
+        ...datosDeclaracion,
+        fecha_creacion: new Date().toISOString(),
+        estado: "PENDIENTE"
+      };
+      
+      const response = await makePostRequest("/declaraciones-juradas", datosParaAPI);
+      
+      return {
+        success: true,
+        message: "Declaración Jurada creada correctamente",
+        data: response.data
+      };
+    } catch (error) {
+      // 🔄 FALLBACK: GUARDAR EN MEMORIA TEMPORAL
+      console.warn("Error al crear en backend, guardando temporalmente:", error);
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const nuevaId = Math.max(0, ...this.declaracionesJuradas.map(d => d.id)) + 1;
+      const nuevaId = Math.max(0, ...this.declaracionesTemp.map(d => d.id)) + 1;
       const nuevaDeclaracion = {
         id: nuevaId,
         ...datosDeclaracion,
@@ -203,63 +374,228 @@ class DeclaracionJuradaService {
         estado: "PENDIENTE"
       };
 
-      this.declaracionesJuradas.push(nuevaDeclaracion);
+      this.declaracionesTemp.push(nuevaDeclaracion);
       
       return {
         success: true,
-        message: "Declaración Jurada creada correctamente",
-        data: nuevaDeclaracion
+        message: "Declaración Jurada creada temporalmente (Backend no disponible)",
+        data: nuevaDeclaracion,
+        temporal: true
       };
-    } catch (error) {
-      console.error("Error al crear declaración jurada:", error);
-      throw error;
     }
   }
 
   async actualizarDeclaracionJurada(id, datosActualizados) {
     try {
+      // 🎯 INTENTAR ACTUALIZAR EN API
+      const response = await makePutRequest(`/declaraciones-juradas/${id}`, {
+        ...datosActualizados,
+        fecha_actualizacion: new Date().toISOString()
+      });
+      
+      return {
+        success: true,
+        message: "Declaración Jurada actualizada correctamente",
+        data: response.data
+      };
+    } catch (error) {
+      // 🔄 FALLBACK: ACTUALIZAR EN MEMORIA TEMPORAL
+      console.warn("Error al actualizar en backend, actualizando temporalmente:", error);
+      
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const index = this.declaracionesJuradas.findIndex(dj => dj.id === id);
+      const index = this.declaracionesTemp.findIndex(dj => dj.id === id);
       if (index === -1) {
         throw new Error("Declaración Jurada no encontrada");
       }
 
-      this.declaracionesJuradas[index] = {
-        ...this.declaracionesJuradas[index],
+      this.declaracionesTemp[index] = {
+        ...this.declaracionesTemp[index],
         ...datosActualizados,
         fecha_actualizacion: new Date().toISOString()
       };
 
       return {
         success: true,
-        message: "Declaración Jurada actualizada correctamente",
-        data: this.declaracionesJuradas[index]
+        message: "Declaración Jurada actualizada temporalmente (Backend no disponible)",
+        data: this.declaracionesTemp[index],
+        temporal: true
       };
-    } catch (error) {
-      console.error("Error al actualizar declaración jurada:", error);
-      throw error;
     }
   }
 
   async eliminarDeclaracionJurada(id) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const index = this.declaracionesJuradas.findIndex(dj => dj.id === id);
-      if (index === -1) {
-        throw new Error("Declaración Jurada no encontrada");
-      }
-
-      this.declaracionesJuradas.splice(index, 1);
-
+      // 🎯 INTENTAR ELIMINAR EN API
+      await makeDeleteRequest(`/declaraciones-juradas/${id}`);
       return {
         success: true,
         message: "Declaración Jurada eliminada correctamente"
       };
     } catch (error) {
-      console.error("Error al eliminar declaración jurada:", error);
-      throw error;
+      // 🔄 FALLBACK: ELIMINAR DE MEMORIA TEMPORAL
+      console.warn("Error al eliminar en backend, eliminando temporalmente:", error);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const index = this.declaracionesTemp.findIndex(dj => dj.id === id);
+      if (index === -1) {
+        throw new Error("Declaración Jurada no encontrada");
+      }
+
+      this.declaracionesTemp.splice(index, 1);
+
+      return {
+        success: true,
+        message: "Declaración Jurada eliminada temporalmente (Backend no disponible)",
+        temporal: true
+      };
+    }
+  }
+
+  // ========== MÉTODOS PARA MAESTROS (SIEMPRE APIs REALES) ==========
+
+  async obtenerTiposVia() {
+    try {
+      return await fetchTipoVias();
+    } catch (error) {
+      console.error("Error al obtener tipos de vía:", error);
+      return [];
+    }
+  }
+
+  async obtenerTiposDocumento() {
+    try {
+      return await fetchTipoDoc();
+    } catch (error) {
+      console.error("Error al obtener tipos de documento:", error);
+      return [];
+    }
+  }
+
+  async obtenerDepartamentos() {
+    try {
+      return await getDepartamentos();
+    } catch (error) {
+      console.error("Error al obtener departamentos:", error);
+      return [];
+    }
+  }
+
+  async obtenerProvincias(idDepartamento) {
+    try {
+      return await getProvincias(idDepartamento);
+    } catch (error) {
+      console.error("Error al obtener provincias:", error);
+      return [];
+    }
+  }
+
+  async obtenerDistritos(idProvincia) {
+    try {
+      return await getDistritos(idProvincia);
+    } catch (error) {
+      console.error("Error al obtener distritos:", error);
+      return [];
+    }
+  }
+
+  async obtenerMaterialesEstructurales() {
+    try {
+      return await fetchMep();
+    } catch (error) {
+      console.error("Error al obtener materiales estructurales:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosConservacionEstructura() {
+    try {
+      return await fetchEcs();
+    } catch (error) {
+      console.error("Error al obtener estados de conservación de estructura:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosConservacionAcabados() {
+    try {
+      return await fetchEcc();
+    } catch (error) {
+      console.error("Error al obtener estados de conservación de acabados:", error);
+      return [];
+    }
+  }
+
+  async obtenerUnidadesMedidaConstruccion() {
+    try {
+      return await fetchUca();
+    } catch (error) {
+      console.error("Error al obtener unidades de medida de construcción:", error);
+      return [];
+    }
+  }
+
+  async obtenerUsosPredio() {
+    try {
+      return await fetchCodUsoPredio();
+    } catch (error) {
+      console.error("Error al obtener usos de predio:", error);
+      return [];
+    }
+  }
+
+  async obtenerClasificacionesUso() {
+    try {
+      return await fetchClasifUso();
+    } catch (error) {
+      console.error("Error al obtener clasificaciones de uso:", error);
+      return [];
+    }
+  }
+
+  async obtenerFormasAdquisicion() {
+    try {
+      return await fetchFormaAdquiPredio();
+    } catch (error) {
+      console.error("Error al obtener formas de adquisición:", error);
+      return [];
+    }
+  }
+
+  async obtenerTiposConstruccionInstalacion() {
+    try {
+      return await fetchConstruccionInst();
+    } catch (error) {
+      console.error("Error al obtener tipos de construcción e instalación:", error);
+      return [];
+    }
+  }
+
+  async obtenerMaterialesPredominantesRural() {
+    try {
+      return await fetchMaterialPredominante();
+    } catch (error) {
+      console.error("Error al obtener materiales predominantes rural:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosConservacionRural() {
+    try {
+      return await fetchEstConservacion();
+    } catch (error) {
+      console.error("Error al obtener estados de conservación rural:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosConstruccionRural() {
+    try {
+      return await fetchEstConstruccion();
+    } catch (error) {
+      console.error("Error al obtener estados de construcción rural:", error);
+      return [];
     }
   }
 
@@ -267,8 +603,8 @@ class DeclaracionJuradaService {
 
   async obtenerPeriodosDisponibles() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return [
+      const data = await makeGetRequest("/declaraciones-juradas/periodos");
+      return data.data || [
         { value: "2024", label: "2024" },
         { value: "2023", label: "2023" },
         { value: "2022", label: "2022" },
@@ -277,7 +613,13 @@ class DeclaracionJuradaService {
       ];
     } catch (error) {
       console.error("Error al obtener periodos:", error);
-      return [];
+      return [
+        { value: "2024", label: "2024" },
+        { value: "2023", label: "2023" },
+        { value: "2022", label: "2022" },
+        { value: "2021", label: "2021" },
+        { value: "2020", label: "2020" }
+      ];
     }
   }
 
@@ -285,14 +627,17 @@ class DeclaracionJuradaService {
 
   async obtenerTiposPredio() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return [
+      const data = await makeGetRequest("/maestros/tipos-predio");
+      return data.data || [
         { value: "URBANO", label: "PREDIO URBANO" },
         { value: "RURAL", label: "PREDIO RURAL" }
       ];
     } catch (error) {
       console.error("Error al obtener tipos de predio:", error);
-      return [];
+      return [
+        { value: "URBANO", label: "PREDIO URBANO" },
+        { value: "RURAL", label: "PREDIO RURAL" }
+      ];
     }
   }
 
@@ -300,8 +645,8 @@ class DeclaracionJuradaService {
 
   async obtenerTiposDeduccion() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return [
+      const data = await makeGetRequest("/maestros/tipos-deduccion");
+      return data.data || [
         { value: "NO", label: "NO" },
         { value: "20% Zona de Conservación", label: "20% Zona de Conservación y Reexención - ASES NO" },
         { value: "10% Zona Histórica", label: "10% Zona Histórica" },
@@ -310,7 +655,13 @@ class DeclaracionJuradaService {
       ];
     } catch (error) {
       console.error("Error al obtener tipos de deducción:", error);
-      return [];
+      return [
+        { value: "NO", label: "NO" },
+        { value: "20% Zona de Conservación", label: "20% Zona de Conservación y Reexención - ASES NO" },
+        { value: "10% Zona Histórica", label: "10% Zona Histórica" },
+        { value: "15% Zona Residencial", label: "15% Zona Residencial Especial" },
+        { value: "25% Zona Rural", label: "25% Zona Rural Protegida" }
+      ];
     }
   }
 
@@ -318,23 +669,23 @@ class DeclaracionJuradaService {
 
   async obtenerEstadisticasDeclaraciones() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      const totalDeclaraciones = this.declaracionesJuradas.length;
-      const aprobadas = this.declaracionesJuradas.filter(d => d.estado === "APROBADO").length;
-      const pendientes = this.declaracionesJuradas.filter(d => d.estado === "PENDIENTE").length;
-      const rechazadas = this.declaracionesJuradas.filter(d => d.estado === "RECHAZADO").length;
-
-      return {
-        total: totalDeclaraciones,
-        aprobadas,
-        pendientes,
-        rechazadas,
-        montoTotal: this.declaracionesJuradas.reduce((sum, dj) => sum + (dj.monto_declarado || 0), 0)
+      const data = await makeGetRequest("/declaraciones-juradas/estadisticas");
+      return data.data || { 
+        total: this.declaracionesTemp.length, 
+        aprobadas: this.declaracionesTemp.filter(d => d.estado === "APROBADO").length, 
+        pendientes: this.declaracionesTemp.filter(d => d.estado === "PENDIENTE").length, 
+        rechazadas: this.declaracionesTemp.filter(d => d.estado === "RECHAZADO").length, 
+        montoTotal: this.declaracionesTemp.reduce((sum, dj) => sum + (dj.monto_declarado || 0), 0) 
       };
     } catch (error) {
       console.error("Error al obtener estadísticas:", error);
-      return { total: 0, aprobadas: 0, pendientes: 0, rechazadas: 0, montoTotal: 0 };
+      return { 
+        total: this.declaracionesTemp.length, 
+        aprobadas: this.declaracionesTemp.filter(d => d.estado === "APROBADO").length, 
+        pendientes: this.declaracionesTemp.filter(d => d.estado === "PENDIENTE").length, 
+        rechazadas: this.declaracionesTemp.filter(d => d.estado === "RECHAZADO").length, 
+        montoTotal: this.declaracionesTemp.reduce((sum, dj) => sum + (dj.monto_declarado || 0), 0) 
+      };
     }
   }
 
@@ -342,23 +693,31 @@ class DeclaracionJuradaService {
 
   async generarPDFDeclaracion(idDeclaracion) {
     try {
+      const response = await makeGetRequest(`/declaraciones-juradas/${idDeclaracion}/pdf`);
+      return {
+        success: true,
+        message: "PDF generado correctamente",
+        url: response.data.url,
+        data: response.data
+      };
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      
+      // 🔄 FALLBACK: SIMULAR GENERACIÓN DE PDF
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const declaracion = this.declaracionesJuradas.find(dj => dj.id === idDeclaracion);
+      const declaracion = this.declaracionesTemp.find(dj => dj.id === idDeclaracion);
       if (!declaracion) {
         throw new Error("Declaración no encontrada");
       }
 
-      // Simular generación de PDF
       return {
         success: true,
-        message: "PDF generado correctamente",
+        message: "PDF generado temporalmente (Backend no disponible)",
         url: `/pdf/declaracion-${idDeclaracion}.pdf`,
-        data: declaracion
+        data: declaracion,
+        temporal: true
       };
-    } catch (error) {
-      console.error("Error al generar PDF:", error);
-      throw error;
     }
   }
 
@@ -366,6 +725,12 @@ class DeclaracionJuradaService {
 
   async validarDeclaracionJurada(datosDeclaracion) {
     try {
+      const response = await makePostRequest("/declaraciones-juradas/validar", datosDeclaracion);
+      return response.data;
+    } catch (error) {
+      console.error("Error al validar declaración:", error);
+      
+      // 🔄 FALLBACK: VALIDACIÓN BÁSICA LOCAL
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const errores = [];
@@ -386,10 +751,161 @@ class DeclaracionJuradaService {
         valido: errores.length === 0,
         errores: errores
       };
-    } catch (error) {
-      console.error("Error al validar declaración:", error);
-      throw error;
     }
+  }
+
+  // ========== MÉTODOS ADICIONALES PARA MAESTROS ESPECIALIZADOS ==========
+
+  async obtenerTiposEvaluacionPredio() {
+    try {
+      return await fetchTipoEvalPredio();
+    } catch (error) {
+      console.error("Error al obtener tipos de evaluación de predio:", error);
+      return [];
+    }
+  }
+
+  async obtenerTiposTitular() {
+    try {
+      return await fetchTipoTitular();
+    } catch (error) {
+      console.error("Error al obtener tipos de titular:", error);
+      return [];
+    }
+  }
+
+  async obtenerCondicionesTitular() {
+    try {
+      return await fetchCondTitular();
+    } catch (error) {
+      console.error("Error al obtener condiciones de titular:", error);
+      return [];
+    }
+  }
+
+  async obtenerCondicionesDeclarante() {
+    try {
+      return await fetchCondDeclarante();
+    } catch (error) {
+      console.error("Error al obtener condiciones de declarante:", error);
+      return [];
+    }
+  }
+
+  async obtenerEstadosCivil() {
+    try {
+      return await fetchEstCivil();
+    } catch (error) {
+      console.error("Error al obtener estados civil:", error);
+      return [];
+    }
+  }
+
+  async obtenerTiposPersonaJuridica() {
+    try {
+      return await fetchTipoPerJuridica();
+    } catch (error) {
+      console.error("Error al obtener tipos de persona jurídica:", error);
+      return [];
+    }
+  }
+
+  async obtenerCondicionesEspecialesTitular() {
+    try {
+      return await fetchCondEspTitular();
+    } catch (error) {
+      console.error("Error al obtener condiciones especiales de titular:", error);
+      return [];
+    }
+  }
+
+  async obtenerFormasAdquisicionCompletas() {
+    try {
+      return await fetchFormaAdqui();
+    } catch (error) {
+      console.error("Error al obtener formas de adquisición completas:", error);
+      return [];
+    }
+  }
+
+  async obtenerCondicionesEspecialesPredio() {
+    try {
+      return await fetchCondEspPredio();
+    } catch (error) {
+      console.error("Error al obtener condiciones especiales de predio:", error);
+      return [];
+    }
+  }
+
+  async obtenerClasificacionesPredio() {
+    try {
+      return await fetchClasifPredio();
+    } catch (error) {
+      console.error("Error al obtener clasificaciones de predio:", error);
+      return [];
+    }
+  }
+
+  async obtenerPrediosCatastralesEn() {
+    try {
+      return await fetchPredioCatEn();
+    } catch (error) {
+      console.error("Error al obtener predios catastrales en:", error);
+      return [];
+    }
+  }
+
+  // ========== MÉTODOS ADICIONALES ÚTILES ==========
+
+  async verificarBackendDisponible() {
+    try {
+      await makeGetRequest("/health");
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async migrarDatosTemporales() {
+    try {
+      console.log("Migrando datos temporales al backend...");
+      
+      // Migrar contribuyentes temporales
+      for (const contribuyente of this.contribuyentesTemp) {
+        await makePostRequest("/contribuyentes", {
+          codigo: contribuyente.c_codigo,
+          tipo_contribuyente: contribuyente.c_tipo_contribuyente,
+          nombre: contribuyente.c_nombre,
+          num_documento: contribuyente.c_num_documento,
+          estado: contribuyente.c_estado,
+          direccion: contribuyente.c_direccion,
+          telefono: contribuyente.c_telefono,
+          email: contribuyente.c_email
+        });
+      }
+      
+      // Migrar declaraciones temporales
+      for (const declaracion of this.declaracionesTemp) {
+        await makePostRequest("/declaraciones-juradas", declaracion);
+      }
+      
+      // Limpiar datos temporales después de migración exitosa
+      this.contribuyentesTemp = [];
+      this.declaracionesTemp = [];
+      
+      return { success: true, message: "Migración completada exitosamente" };
+    } catch (error) {
+      console.error("Error en migración:", error);
+      return { success: false, message: "Error en migración: " + error.message };
+    }
+  }
+
+  // ========== MÉTODOS PARA LIMPIAR DATOS TEMPORALES ==========
+
+  limpiarDatosTemporales() {
+    this.contribuyentesTemp = [];
+    this.declaracionesTemp = [];
+    console.log("Datos temporales limpiados");
   }
 }
 
