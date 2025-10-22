@@ -565,17 +565,17 @@ export default function DeclaracionJurada() {
             </CardHeader>
             <CardBody>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
+                <Select
                   label="Departamento"
                   value={formData.departamento}
                   onChange={(e) => handleInputChange("departamento", e.target.value)}
                 />
-                <Input
+                <Select
                   label="Provincia"
                   value={formData.provincia}
                   onChange={(e) => handleInputChange("provincia", e.target.value)}
                 />
-                <Input
+                <Select
                   label="Distrito"
                   value={formData.distrito}
                   onChange={(e) => handleInputChange("distrito", e.target.value)}
@@ -585,7 +585,7 @@ export default function DeclaracionJurada() {
                   value={formData.codigo_via}
                   onChange={(e) => handleInputChange("codigo_via", e.target.value)}
                 />
-                <Input
+                <Select
                   label="Tipo de Vía"
                   value={formData.tipo_via}
                   onChange={(e) => handleInputChange("tipo_via", e.target.value)}
@@ -616,7 +616,7 @@ export default function DeclaracionJurada() {
                   value={formData.lote_urbana}
                   onChange={(e) => handleInputChange("lote_urbana", e.target.value)}
                 />
-                <Input
+                <Select
                   label="Tipo de Denominación Urbana"
                   value={formData.tipo_denominacion_urbana}
                   onChange={(e) => handleInputChange("tipo_denominacion_urbana", e.target.value)}
@@ -662,17 +662,17 @@ export default function DeclaracionJurada() {
                     value={formData.uso_predio_urbano}
                     onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
                   />
-                  <Input
+                  <Select
                     label="Estado del Predio"
                     value={formData.estado_predio}
                     onChange={(e) => handleInputChange("estado_predio", e.target.value)}
                   />
-                  <Input
+                  <Select
                     label="Tipo de Predio"
                     value={formData.tipo_predio}
                     onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
                   />
-                  <Input
+                  <Select
                     label="Condición del Predio"
                     value={formData.condicion_predio}
                     onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
@@ -763,17 +763,17 @@ export default function DeclaracionJurada() {
             </CardHeader>
             <CardBody>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
+                <Select
                   label="Departamento"
                   value={formData.departamento}
                   onChange={(e) => handleInputChange("departamento", e.target.value)}
                 />
-                <Input
+                <Select
                   label="Provincia"
                   value={formData.provincia}
                   onChange={(e) => handleInputChange("provincia", e.target.value)}
                 />
-                <Input
+                <Select
                   label="Distrito"
                   value={formData.distrito}
                   onChange={(e) => handleInputChange("distrito", e.target.value)}
@@ -823,17 +823,17 @@ export default function DeclaracionJurada() {
                     value={formData.uso_predio_urbano}
                     onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
                   />
-                  <Input
+                  <Select
                     label="Estado del Predio"
                     value={formData.estado_predio}
                     onChange={(e) => handleInputChange("estado_predio", e.target.value)}
                   />
-                  <Input
+                  <Select
                     label="Tipo de Predio"
                     value={formData.tipo_predio}
                     onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
                   />
-                  <Input
+                  <Select
                     label="Condición del Predio"
                     value={formData.condicion_predio}
                     onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
