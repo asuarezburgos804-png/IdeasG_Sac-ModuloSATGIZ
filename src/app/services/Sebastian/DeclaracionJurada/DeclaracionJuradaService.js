@@ -1,8 +1,8 @@
-import { 
-  makeGetRequest, 
-  makePostRequest, 
-  makePutRequest, 
-  makeDeleteRequest 
+import {
+  makeGetRequest,
+  makePostRequest,
+  makePutRequest,
+  makeDeleteRequest
 } from "@/utils/api/api";
 
 import {
@@ -34,6 +34,10 @@ import {
   fetchClasifPredio,
   fetchPredioCatEn
 } from "@/app/services/master/master";
+
+// Importar servicios de contribuyente de SATGIZ
+import { ContribuyenteService } from "@/app/services/SATGIZ/contribuyenteService";
+import { UbicacionContribuyenteService } from "@/app/services/SATGIZ/ubicacionContribuyenteService";
 
 class DeclaracionJuradaService {
   constructor() {
@@ -161,34 +165,34 @@ class DeclaracionJuradaService {
     ];
   }
 
-  // ========== MÉTODOS PARA CONTRIBUYENTES (HÍBRIDOS) ==========
+  // ========== MÉTODOS PARA CONTRIBUYENTES (USANDO SERVICIOS SATGIZ) ==========
 
   async obtenerTodosContribuyentes() {
     try {
-      // 🎯 INTENTAR API PRIMERO
-      const data = await makeGetRequest("/contribuyentes");
-      const contribuyentes = data.data || [];
+      // 🎯 USAR SERVICIO SATGIZ
+      const contribuyentes = await ContribuyenteService.obtenerTodos();
       
-      if (contribuyentes.length > 0) {
-        return contribuyentes.map(contribuyente => ({
-          c_codigo: contribuyente.codigo || `DJ-${contribuyente.num_documento}-${new Date().getFullYear()}`,
-          c_tipo_contribuyente: contribuyente.tipo_contribuyente || "PERSONA NATURAL",
-          c_nombre: contribuyente.nombre || contribuyente.razon_social || "N/A",
-          c_num_documento: contribuyente.num_documento || "N/A",
-          c_estado: contribuyente.estado || "ACTIVO",
-          c_direccion: contribuyente.direccion || "",
-          c_telefono: contribuyente.telefono || "",
-          c_email: contribuyente.email || ""
-        }));
-      } else {
-        // 🔄 FALLBACK A DATOS TEMPORALES
-        console.warn("Usando datos temporales de contribuyentes - Backend no disponible");
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return this.contribuyentesTemp;
+      // Transformar datos al formato esperado por Declaración Jurada
+      const contribuyentesTransformados = [];
+      
+      for (const contribuyente of contribuyentes) {
+        const direccion = await this.obtenerDireccionContribuyente(contribuyente.c_num_documento);
+        contribuyentesTransformados.push({
+          c_codigo: `DJ-${contribuyente.c_num_documento}-${new Date().getFullYear()}`,
+          c_tipo_contribuyente: contribuyente.c_tipo_contribuyente || "PERSONA NATURAL",
+          c_nombre: contribuyente.c_nombre || "N/A",
+          c_num_documento: contribuyente.c_num_documento || "N/A",
+          c_estado: "ACTIVO",
+          c_direccion: direccion,
+          c_telefono: contribuyente.c_telefono || "",
+          c_email: contribuyente.c_correo_electronico || ""
+        });
       }
+      
+      return contribuyentesTransformados;
     } catch (error) {
-      // 🔄 FALLBACK A DATOS TEMPORALES EN ERROR
-      console.warn("Error al obtener contribuyentes, usando datos temporales:", error);
+      // 🔄 FALLBACK A DATOS TEMPORALES
+      console.warn("Error al obtener contribuyentes de SATGIZ, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 300));
       return this.contribuyentesTemp;
     }
@@ -200,34 +204,16 @@ class DeclaracionJuradaService {
         return this.obtenerTodosContribuyentes();
       }
 
-      // 🎯 INTENTAR API PRIMERO
-      const data = await makeGetRequest(`/contribuyentes/buscar?q=${encodeURIComponent(termino)}`);
-      const contribuyentes = data.data || [];
+      // 🎯 OBTENER TODOS LOS CONTRIBUYENTES Y FILTRAR LOCALMENTE
+      const todosContribuyentes = await this.obtenerTodosContribuyentes();
+      const terminoLower = termino.toLowerCase();
       
-      if (contribuyentes.length > 0) {
-        return contribuyentes.map(contribuyente => ({
-          c_codigo: contribuyente.codigo || `DJ-${contribuyente.num_documento}-${new Date().getFullYear()}`,
-          c_tipo_contribuyente: contribuyente.tipo_contribuyente || "PERSONA NATURAL",
-          c_nombre: contribuyente.nombre || contribuyente.razon_social || "N/A",
-          c_num_documento: contribuyente.num_documento || "N/A",
-          c_estado: contribuyente.estado || "ACTIVO",
-          c_direccion: contribuyente.direccion || "",
-          c_telefono: contribuyente.telefono || "",
-          c_email: contribuyente.email || ""
-        }));
-      } else {
-        // 🔄 FALLBACK A BÚSQUEDA EN DATOS TEMPORALES
-        console.warn("Buscando en datos temporales - Backend no disponible");
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const terminoLower = termino.toLowerCase();
-        return this.contribuyentesTemp.filter(contribuyente =>
-          contribuyente.c_codigo?.toLowerCase().includes(terminoLower) ||
-          contribuyente.c_tipo_contribuyente?.toLowerCase().includes(terminoLower) ||
-          contribuyente.c_nombre?.toLowerCase().includes(terminoLower) ||
-          contribuyente.c_num_documento?.includes(termino)
-        );
-      }
+      return todosContribuyentes.filter(contribuyente =>
+        contribuyente.c_codigo?.toLowerCase().includes(terminoLower) ||
+        contribuyente.c_tipo_contribuyente?.toLowerCase().includes(terminoLower) ||
+        contribuyente.c_nombre?.toLowerCase().includes(terminoLower) ||
+        contribuyente.c_num_documento?.includes(termino)
+      );
     } catch (error) {
       // 🔄 FALLBACK A BÚSQUEDA EN DATOS TEMPORALES
       console.warn("Error en búsqueda, usando datos temporales:", error);
@@ -245,32 +231,57 @@ class DeclaracionJuradaService {
 
   async obtenerContribuyentePorDocumento(documento) {
     try {
-      // 🎯 INTENTAR API PRIMERO
-      const data = await makeGetRequest(`/contribuyentes/documento/${documento}`);
-      const contribuyente = data.data || null;
+      // 🎯 USAR SERVICIO SATGIZ
+      const contribuyente = await ContribuyenteService.obtenerPorDocumento(documento);
       
       if (contribuyente) {
+        const direccion = await this.obtenerDireccionContribuyente(contribuyente.c_num_documento);
         return {
-          c_codigo: contribuyente.codigo || `DJ-${contribuyente.num_documento}-${new Date().getFullYear()}`,
-          c_tipo_contribuyente: contribuyente.tipo_contribuyente || "PERSONA NATURAL",
-          c_nombre: contribuyente.nombre || contribuyente.razon_social || "N/A",
-          c_num_documento: contribuyente.num_documento || "N/A",
-          c_estado: contribuyente.estado || "ACTIVO",
-          c_direccion: contribuyente.direccion || "",
-          c_telefono: contribuyente.telefono || "",
-          c_email: contribuyente.email || ""
+          c_codigo: `DJ-${contribuyente.c_num_documento}-${new Date().getFullYear()}`,
+          c_tipo_contribuyente: contribuyente.c_tipo_contribuyente || "PERSONA NATURAL",
+          c_nombre: contribuyente.c_nombre || "N/A",
+          c_num_documento: contribuyente.c_num_documento || "N/A",
+          c_estado: "ACTIVO",
+          c_direccion: direccion,
+          c_telefono: contribuyente.c_telefono || "",
+          c_email: contribuyente.c_correo_electronico || ""
         };
       } else {
         // 🔄 FALLBACK A DATOS TEMPORALES
-        console.warn("Usando datos temporales - Contribuyente no encontrado en backend");
+        console.warn("Contribuyente no encontrado en SATGIZ, usando datos temporales");
         await new Promise(resolve => setTimeout(resolve, 200));
         return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
       }
     } catch (error) {
       // 🔄 FALLBACK A DATOS TEMPORALES
-      console.warn("Error al obtener contribuyente, usando datos temporales:", error);
+      console.warn("Error al obtener contribuyente de SATGIZ, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 200));
       return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
+    }
+  }
+
+  // ========== MÉTODOS AUXILIARES PARA UBICACIONES ==========
+
+  async obtenerDireccionContribuyente(numeroDocumento) {
+    try {
+      const ubicaciones = await UbicacionContribuyenteService.obtenerPorContribuyente(numeroDocumento);
+      if (ubicaciones && ubicaciones.length > 0) {
+        // Usar la primera ubicación para obtener la dirección
+        return UbicacionContribuyenteService.formatearDireccion(ubicaciones[0]);
+      }
+      return "";
+    } catch (error) {
+      console.warn("Error al obtener dirección del contribuyente:", error);
+      return "";
+    }
+  }
+
+  async obtenerUbicacionesContribuyente(numeroDocumento) {
+    try {
+      return await UbicacionContribuyenteService.obtenerPorContribuyente(numeroDocumento);
+    } catch (error) {
+      console.warn("Error al obtener ubicaciones del contribuyente:", error);
+      return [];
     }
   }
 
@@ -897,6 +908,64 @@ class DeclaracionJuradaService {
     } catch (error) {
       console.error("Error en migración:", error);
       return { success: false, message: "Error en migración: " + error.message };
+    }
+  }
+
+  // ========== MÉTODOS ADICIONALES PARA VALIDACIONES CON SATGIZ ==========
+
+  async validarContribuyenteSATGIZ(datosContribuyente) {
+    try {
+      return ContribuyenteService.validarContribuyente(datosContribuyente);
+    } catch (error) {
+      console.error("Error al validar contribuyente con SATGIZ:", error);
+      return { isValid: false, errors: { general: "Error de validación" } };
+    }
+  }
+
+  async validarUbicacionSATGIZ(datosUbicacion) {
+    try {
+      return UbicacionContribuyenteService.validarUbicacion(datosUbicacion);
+    } catch (error) {
+      console.error("Error al validar ubicación con SATGIZ:", error);
+      return { isValid: false, errors: { general: "Error de validación" } };
+    }
+  }
+
+  async crearContribuyenteSATGIZ(datosContribuyente) {
+    try {
+      const resultado = await ContribuyenteService.crear(datosContribuyente);
+      return { success: true, data: resultado };
+    } catch (error) {
+      console.error("Error al crear contribuyente en SATGIZ:", error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async crearUbicacionSATGIZ(datosUbicacion) {
+    try {
+      const resultado = await UbicacionContribuyenteService.crear(datosUbicacion);
+      return { success: true, data: resultado };
+    } catch (error) {
+      console.error("Error al crear ubicación en SATGIZ:", error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  // ========== MÉTODOS PARA OBTENER DATOS COMPLETOS DE CONTRIBUYENTE ==========
+
+  async obtenerDatosCompletosContribuyente(documento) {
+    try {
+      const contribuyente = await this.obtenerContribuyentePorDocumento(documento);
+      const ubicaciones = await this.obtenerUbicacionesContribuyente(documento);
+      
+      return {
+        contribuyente,
+        ubicaciones,
+        tieneUbicaciones: ubicaciones && ubicaciones.length > 0
+      };
+    } catch (error) {
+      console.error("Error al obtener datos completos del contribuyente:", error);
+      return { contribuyente: null, ubicaciones: [], tieneUbicaciones: false };
     }
   }
 
