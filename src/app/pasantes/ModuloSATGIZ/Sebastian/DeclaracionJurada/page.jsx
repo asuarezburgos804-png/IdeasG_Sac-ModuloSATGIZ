@@ -170,11 +170,14 @@ export default function DeclaracionJurada() {
           contribuyente.documento
         );
       setDeclaraciones(declaracionesContribuyente);
-      setFase(2);
     } catch (error) {
       console.error("Error al obtener declaraciones:", error);
+      // El servicio ya maneja el fallback con datos temporales
+      // Así que podemos proceder a la fase 2 incluso si hay error
     } finally {
       setCargandoDeclaraciones(false);
+      // Siempre pasar a fase 2, independientemente del resultado del servicio
+      setFase(2);
     }
   };
 
@@ -312,20 +315,20 @@ export default function DeclaracionJurada() {
 
       {/* Tabla de resultados */}
       <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse border border-gray-300">
+        <table className="min-w-full border-collapse border border-#d1d5dc">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-300 p-2 text-left">#</th>
-              <th className="border border-gray-300 p-2 text-left">
+            <tr className="bg-#f3f4f6">
+              <th className="border border-#d1d5dc p-2 text-left">#</th>
+              <th className="border border-#d1d5dc p-2 text-left">
                 Tipo Contribuyente
               </th>
-              <th className="border border-gray-300 p-2 text-left">
+              <th className="border border-#d1d5dc p-2 text-left">
                 Nombre/Razón Social
               </th>
-              <th className="border border-gray-300 p-2 text-left">
+              <th className="border border-#d1d5dc p-2 text-left">
                 Nro. Doc./RUC
               </th>
-              <th className="border border-gray-300 p-2 text-left">Acción</th>
+              <th className="border border-#d1d5dc p-2 text-left">Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -342,29 +345,29 @@ export default function DeclaracionJurada() {
               resultados.map((contribuyente, index) => (
                 <tr
                   key={contribuyente.id}
-                  className="border-b hover:bg-blue-50 transition-colors"
+                  className="border-b hover:bg-#eff6ff transition-colors"
                 >
-                  <td className="p-2 border border-gray-300 font-mono text-sm">
+                  <td className="p-2 border border-#d1d5dc font-mono text-sm">
                     {index + 1}
                   </td>
-                  <td className="p-2 border border-gray-300">
+                  <td className="p-2 border border-#d1d5dc">
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
                         contribuyente.tipoContribuyente === "PERSONA NATURAL"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-green-100 text-green-800"
+                          ? "bg-#dbeafe text-#193cb8"
+                          : "bg-#dcfce7 text-#016630"
                       }`}
                     >
                       {contribuyente.tipoContribuyente}
                     </span>
                   </td>
-                  <td className="p-2 border border-gray-300 font-medium">
+                  <td className="p-2 border border-#d1d5dc font-medium">
                     {contribuyente.nombre}
                   </td>
-                  <td className="p-2 border border-gray-300 font-mono text-sm">
+                  <td className="p-2 border border-#d1d5dc font-mono text-sm">
                     {contribuyente.documento}
                   </td>
-                  <td className="p-2 border border-gray-300">
+                  <td className="p-2 border border-#d1d5dc">
                     <Button
                       size="sm"
                       color="primary"
@@ -379,7 +382,7 @@ export default function DeclaracionJurada() {
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="p-8 text-center text-gray-500">
+                <td colSpan="5" className="p-8 text-center text-#6a7282">
                   {busqueda
                     ? "No se encontraron contribuyentes con esos criterios"
                     : "Ingrese un término de búsqueda para ver los contribuyentes"}
@@ -396,7 +399,7 @@ export default function DeclaracionJurada() {
   const renderFaseDeclaraciones = () => (
     <div>
       {/* Información del contribuyente seleccionado */}
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mb-6 p-4 bg-#eff6ff border border-#bedbff rounded-lg">
         <h3 className="font-bold text-lg mb-2">Contribuyente Seleccionado</h3>
         <p>
           <strong>Nombre:</strong> {contribuyenteSeleccionado.nombre}
@@ -422,24 +425,24 @@ export default function DeclaracionJurada() {
 
       {/* Tabla de declaraciones existentes */}
       <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse border border-gray-300">
+        <table className="min-w-full border-collapse border border-#d1d5dc">
           <thead>
             <tr className="bg-gray-100">
-              <th className="border border-gray-300 p-2 text-left">#</th>
-              <th className="border border-gray-300 p-2 text-left">Código</th>
-              <th className="border border-gray-300 p-2 text-left">
+              <th className="border border-#d1d5dc p-2 text-left">#</th>
+              <th className="border border-#d1d5dc p-2 text-left">Código</th>
+              <th className="border border-#d1d5dc p-2 text-left">
                 Tipo Predio
               </th>
-              <th className="border border-gray-300 p-2 text-left">
+              <th className="border border-#d1d5dc p-2 text-left">
                 Ubicación
               </th>
-              <th className="border border-gray-300 p-2 text-left">
+              <th className="border border-#d1d5dc p-2 text-left">
                 Deducción
               </th>
-              <th className="border border-gray-300 p-2 text-left">
+              <th className="border border-#d1d5dc p-2 text-left">
                 Área Terreno
               </th>
-              <th className="border border-gray-300 p-2 text-left">Acción</th>
+              <th className="border border-#d1d5dc p-2 text-left">Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -456,25 +459,25 @@ export default function DeclaracionJurada() {
               declaraciones.map((declaracion, index) => (
                 <tr
                   key={declaracion.id}
-                  className="border-b hover:bg-blue-50 transition-colors"
+                  className="border-b hover:bg-#eff6ff transition-colors"
                 >
-                  <td className="p-2 border border-gray-300">{index + 1}</td>
-                  <td className="p-2 border border-gray-300 font-mono text-sm">
+                  <td className="p-2 border border-#d1d5dc">{index + 1}</td>
+                  <td className="p-2 border border-#d1d5dc font-mono text-sm">
                     {declaracion.codigo || "N/A"}
                   </td>
-                  <td className="p-2 border border-gray-300">
+                  <td className="p-2 border border-#d1d5dc">
                     {declaracion.tipo_predio || "URBANO"}
                   </td>
-                  <td className="p-2 border border-gray-300">
+                  <td className="p-2 border border-#d1d5dc">
                     {declaracion.ubicacion || "Sin ubicación"}
                   </td>
-                  <td className="p-2 border border-gray-300">
+                  <td className="p-2 border border-#d1d5dc">
                     {declaracion.deduccion || "NO"}
                   </td>
-                  <td className="p-2 border border-gray-300">
+                  <td className="p-2 border border-#d1d5dc">
                     {declaracion.area_terreno || "0 m²"}
                   </td>
-                  <td className="p-2 border border-gray-300">
+                  <td className="p-2 border border-#d1d5dc">
                     <Button
                       size="sm"
                       color="primary"
@@ -487,7 +490,7 @@ export default function DeclaracionJurada() {
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="p-8 text-center text-gray-500">
+                <td colSpan="7" className="p-8 text-center text-#6a7282">
                   No se encontraron declaraciones juradas para este
                   contribuyente
                 </td>
@@ -502,7 +505,7 @@ export default function DeclaracionJurada() {
   // Renderizar FASE 3: Formulario de nueva declaración jurada
   const renderFaseNuevaDeclaracion = () => (
     <div>
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mb-6 p-4 bg-#eff6ff border border-#bedbff rounded-lg">
         <h3 className="font-bold text-lg mb-2">Nueva Declaración Jurada</h3>
         <p>
           <strong>Contribuyente:</strong> {contribuyenteSeleccionado.nombre}
@@ -639,13 +642,13 @@ export default function DeclaracionJurada() {
                         type="checkbox"
                         checked={formData.autoriza_deduccion || false}
                         onChange={(e) => handleInputChange("autoriza_deduccion", e.target.checked)}
-                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="h-5 w-5 rounded border-#d1d5dc text-#155dfc focus:ring-#155dfc"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-#364153">
                         ¿Se autoriza la deducción?
                       </span>
                     </label>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-#6a7282 mt-1">
                       Marque esta casilla si autoriza la deducción aplicable al predio
                     </p>
                   </div>
@@ -698,9 +701,9 @@ export default function DeclaracionJurada() {
                         type="checkbox"
                         checked={formData.tiene_agua || false}
                         onChange={(e) => handleInputChange("tiene_agua", e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-#6a7282 text-#155dfc focus:ring-#2b7fff"
                       />
-                      <span className="text-sm font-medium text-gray-700">Agua</span>
+                      <span className="text-sm font-medium text-#364153">Agua</span>
                     </label> 
                     <Input
                       label="N° de Suministro de Agua"
@@ -718,9 +721,9 @@ export default function DeclaracionJurada() {
                        type="checkbox"
                        checked={formData.tiene_luz || false}
                        onChange={(e) => handleInputChange("tiene_luz", e.target.checked)}
-                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                       className="h-4 w-4 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
                       />
-                      <span className="text-sm font-medium text-gray-700">Luz</span>
+                      <span className="text-sm font-medium text-#364153">Luz</span>
                     </label>
                     <Input
                       label="N° de Suministro de Luz"
@@ -738,9 +741,9 @@ export default function DeclaracionJurada() {
                        type="checkbox"
                        checked={formData.tiene_desague || false}
                        onChange={(e) => handleInputChange("tiene_desague", e.target.checked)}
-                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                       className="h-4 w-4 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
                       />
-                      <span className="text-sm font-medium text-gray-700">Desagüe</span>
+                      <span className="text-sm font-medium text-#364153">Desagüe</span>
                     </label>
                     <Input
                       label="N° de Suministro de Desagüe"
@@ -801,13 +804,13 @@ export default function DeclaracionJurada() {
                         type="checkbox"
                         checked={formData.autoriza_deduccion || false}
                         onChange={(e) => handleInputChange("autoriza_deduccion", e.target.checked)}
-                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="h-5 w-5 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-#364153">
                         ¿Se autoriza la deducción?
                       </span>
                     </label>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-#6a7282 mt-1">
                       Marque esta casilla si autoriza la deducción aplicable al predio
                     </p>
                   </div>
@@ -1060,7 +1063,7 @@ export default function DeclaracionJurada() {
           <CardBody>
             <div className="space-y-4">
               {/* Formulario para agregar nueva instalación */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-#f9fafb rounded-lg">
                 <Input
                   label="Código"
                   value={nuevaInstalacion.codigo}
@@ -1184,19 +1187,19 @@ export default function DeclaracionJurada() {
                 <div className="mt-4">
                   <h5 className="font-bold mb-2">Instalaciones Agregadas</h5>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse border border-gray-300">
+                    <table className="min-w-full border-collapse border border-#d1d5dc">
                       <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 p-2 text-left">
+                        <tr className="bg-#f3f4f6">
+                          <th className="border border-#d1d5dc p-2 text-left">
                             Código
                           </th>
-                          <th className="border border-gray-300 p-2 text-left">
+                          <th className="border border-#d1d5dc p-2 text-left">
                             Descripción
                           </th>
-                          <th className="border border-gray-300 p-2 text-left">
+                          <th className="border border-#d1d5dc p-2 text-left">
                             Uso
                           </th>
-                          <th className="border border-gray-300 p-2 text-left">
+                          <th className="border border-#d1d5dc p-2 text-left">
                             Acciones
                           </th>
                         </tr>
@@ -1205,16 +1208,16 @@ export default function DeclaracionJurada() {
                         {formData.otras_instalaciones.map(
                           (instalacion, index) => (
                             <tr key={index}>
-                              <td className="border border-gray-300 p-2">
+                              <td className="border border-#d1d5dc p-2">
                                 {instalacion.codigo}
                               </td>
-                              <td className="border border-gray-300 p-2">
+                              <td className="border border-#d1d5dc p-2">
                                 {instalacion.descripcion}
                               </td>
-                              <td className="border border-gray-300 p-2">
+                              <td className="border border-#d1d5dc p-2">
                                 {instalacion.uso}
                               </td>
-                              <td className="border border-gray-300 p-2">
+                              <td className="border border-#d1d5dc p-2">
                                 <Button
                                   size="sm"
                                   color="danger"
@@ -1255,7 +1258,7 @@ export default function DeclaracionJurada() {
           <div className="flex justify-between items-center w-full">
             <div>
               <h2 className="text-xl font-bold">Declaración Jurada</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-#4a5565 mt-1">
                 {fase === 1 && "Búsqueda de contribuyentes"}
                 {fase === 2 &&
                   `Declaraciones de ${contribuyenteSeleccionado?.nombre}`}
