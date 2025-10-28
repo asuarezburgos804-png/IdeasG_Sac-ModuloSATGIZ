@@ -28,6 +28,12 @@ export default function DeclaracionJurada() {
   const [declaraciones, setDeclaraciones] = useState([]);
   const [cargandoDeclaraciones, setCargandoDeclaraciones] = useState(false);
 
+  // Estados para ubicaciones
+  const [departamentos, setDepartamentos] = useState([]);
+  const [provincias, setProvincias] = useState([]);
+  const [distritos, setDistritos] = useState([]);
+  const [cargandoUbicaciones, setCargandoUbicaciones] = useState(false);
+
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
     // Datos básicos
@@ -158,6 +164,104 @@ export default function DeclaracionJurada() {
 
     return () => clearTimeout(delayDebounceFn);
   }, [busqueda]);
+
+  // Cargar departamentos al montar el componente
+  useEffect(() => {
+    const cargarDepartamentos = async () => {
+      try {
+        setCargandoUbicaciones(true);
+        const departamentosData = await DeclaracionJuradaService.obtenerDepartamentos();
+        console.log("Departamentos cargados:", departamentosData);
+        setDepartamentos(departamentosData);
+      } catch (error) {
+        console.error("Error al cargar departamentos:", error);
+        // Datos de prueba si falla la API
+        setDepartamentos([
+          { id: "01", nombre: "LIMA" },
+          { id: "02", nombre: "AREQUIPA" },
+          { id: "03", nombre: "CUSCO" },
+          { id: "04", nombre: "LA LIBERTAD" },
+          { id: "05", nombre: "PIURA" }
+        ]);
+      } finally {
+        setCargandoUbicaciones(false);
+      }
+    };
+
+    cargarDepartamentos();
+  }, []);
+
+  // Manejar cambio de departamento - cargar provincias
+  const handleDepartamentoChange = async (departamentoId) => {
+    handleInputChange("departamento", departamentoId);
+    
+    // Limpiar provincias y distritos anteriores
+    setProvincias([]);
+    setDistritos([]);
+    handleInputChange("provincia", "");
+    handleInputChange("distrito", "");
+
+    if (departamentoId) {
+      try {
+        setCargandoUbicaciones(true);
+        const provinciasData = await DeclaracionJuradaService.obtenerProvincias(departamentoId);
+        console.log("Provincias cargadas:", provinciasData);
+        setProvincias(provinciasData);
+      } catch (error) {
+        console.error("Error al cargar provincias:", error);
+        // Datos de prueba si falla la API
+        if (departamentoId === "01") {
+          setProvincias([
+            { id: "0101", nombre: "LIMA" },
+            { id: "0102", nombre: "CAÑETE" },
+            { id: "0103", nombre: "HUARAL" }
+          ]);
+        } else {
+          setProvincias([
+            { id: `${departamentoId}01`, nombre: "PROVINCIA 1" },
+            { id: `${departamentoId}02`, nombre: "PROVINCIA 2" }
+          ]);
+        }
+      } finally {
+        setCargandoUbicaciones(false);
+      }
+    }
+  };
+
+  // Manejar cambio de provincia - cargar distritos
+  const handleProvinciaChange = async (provinciaId) => {
+    handleInputChange("provincia", provinciaId);
+    
+    // Limpiar distritos anteriores
+    setDistritos([]);
+    handleInputChange("distrito", "");
+
+    if (provinciaId) {
+      try {
+        setCargandoUbicaciones(true);
+        const distritosData = await DeclaracionJuradaService.obtenerDistritos(provinciaId);
+        console.log("Distritos cargados:", distritosData);
+        setDistritos(distritosData);
+      } catch (error) {
+        console.error("Error al cargar distritos:", error);
+        // Datos de prueba si falla la API
+        if (provinciaId === "0101") {
+          setDistritos([
+            { id: "010101", nombre: "LIMA" },
+            { id: "010102", nombre: "MIRAFLORES" },
+            { id: "010103", nombre: "SAN ISIDRO" }
+          ]);
+        } else {
+          setDistritos([
+            { id: `${provinciaId}01`, nombre: "DISTRITO 1" },
+            { id: `${provinciaId}02`, nombre: "DISTRITO 2" }
+          ]);
+        }
+      } finally {
+        setCargandoUbicaciones(false);
+      }
+    }
+  };
 
   // Manejar selección de contribuyente - Transición a FASE 2
   const handleSeleccionarContribuyente = async (contribuyente) => {
@@ -570,19 +674,42 @@ export default function DeclaracionJurada() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
                   label="Departamento"
-                  value={formData.departamento}
-                  onChange={(e) => handleInputChange("departamento", e.target.value)}
-                />
+                  selectedKeys={formData.departamento ? [formData.departamento] : []}
+                  onChange={(e) => handleDepartamentoChange(e.target.value)}
+                  isLoading={cargandoUbicaciones}
+                >
+                  {departamentos.map((departamento) => (
+                    <SelectItem key={departamento.id} value={departamento.id}>
+                      {departamento.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Select
                   label="Provincia"
-                  value={formData.provincia}
-                  onChange={(e) => handleInputChange("provincia", e.target.value)}
-                />
+                  selectedKeys={formData.provincia ? [formData.provincia] : []}
+                  onChange={(e) => handleProvinciaChange(e.target.value)}
+                  isLoading={cargandoUbicaciones}
+                  isDisabled={!formData.departamento}
+                >
+                  {provincias.map((provincia) => (
+                    <SelectItem key={provincia.id} value={provincia.id}>
+                      {provincia.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Select
                   label="Distrito"
-                  value={formData.distrito}
+                  selectedKeys={formData.distrito ? [formData.distrito] : []}
                   onChange={(e) => handleInputChange("distrito", e.target.value)}
-                />
+                  isLoading={cargandoUbicaciones}
+                  isDisabled={!formData.provincia}
+                >
+                  {distritos.map((distrito) => (
+                    <SelectItem key={distrito.id} value={distrito.id}>
+                      {distrito.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Input
                   label="Código de Vía"
                   value={formData.codigo_via}
@@ -768,19 +895,42 @@ export default function DeclaracionJurada() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
                   label="Departamento"
-                  value={formData.departamento}
-                  onChange={(e) => handleInputChange("departamento", e.target.value)}
-                />
+                  selectedKeys={formData.departamento ? [formData.departamento] : []}
+                  onChange={(e) => handleDepartamentoChange(e.target.value)}
+                  isLoading={cargandoUbicaciones}
+                >
+                  {departamentos.map((departamento) => (
+                    <SelectItem key={departamento.id} value={departamento.id}>
+                      {departamento.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Select
                   label="Provincia"
-                  value={formData.provincia}
-                  onChange={(e) => handleInputChange("provincia", e.target.value)}
-                />
+                  selectedKeys={formData.provincia ? [formData.provincia] : []}
+                  onChange={(e) => handleProvinciaChange(e.target.value)}
+                  isLoading={cargandoUbicaciones}
+                  isDisabled={!formData.departamento}
+                >
+                  {provincias.map((provincia) => (
+                    <SelectItem key={provincia.id} value={provincia.id}>
+                      {provincia.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Select
                   label="Distrito"
-                  value={formData.distrito}
+                  selectedKeys={formData.distrito ? [formData.distrito] : []}
                   onChange={(e) => handleInputChange("distrito", e.target.value)}
-                />
+                  isLoading={cargandoUbicaciones}
+                  isDisabled={!formData.provincia}
+                >
+                  {distritos.map((distrito) => (
+                    <SelectItem key={distrito.id} value={distrito.id}>
+                      {distrito.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Input
                   label="Zona donde se encuentra el Predio Rural"
                   value={formData.zona_predio_rural}
