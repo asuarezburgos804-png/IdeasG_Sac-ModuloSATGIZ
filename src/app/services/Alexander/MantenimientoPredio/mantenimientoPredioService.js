@@ -39,14 +39,14 @@ class MantenimientoPredioService {
       "2024": []
     };
 
-    // Contribuyentes (temporal)
+    // Contribuyentes (temporal hasta tener el api)
     this.contribuyentes = [
       { documento: "75257565", nombre: "MARIA REYNA ANTUANET RODRIGUEZ CABANILLAS" },
       { documento: "05232717", nombre: "JUAN BOCANEGRA LINAREZ" },
       { documento: "7799915", nombre: "RENZO GARCIA AUQUI" }
     ];
 
-    // Datos estáticos como respaldo
+    // Datos estáticos como respaldo por si no hay datos en el backend
     this.departamentosBackup = [
       { value: "CUSCO", label: "Cusco" },
       { value: "LIMA", label: "Lima" },

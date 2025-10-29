@@ -41,7 +41,7 @@ import { UbicacionContribuyenteService } from "@/app/services/SATGIZ/ubicacionCo
 
 class DeclaracionJuradaService {
   constructor() {
-    // ✅ DATOS TEMPORALES PARA CONTRIBUYENTES (mientras desarrollas backend)
+    //  DATOS TEMPORALES PARA CONTRIBUYENTES (mientras desarrollas backend)
     this.contribuyentesTemp = [
       {
         c_codigo: "DJ-001-2024",
@@ -95,7 +95,7 @@ class DeclaracionJuradaService {
       }
     ];
 
-    // ✅ DATOS TEMPORALES PARA DECLARACIONES
+    //  DATOS TEMPORALES PARA DECLARACIONES
     this.declaracionesTemp = [
       {
         id: 1,
@@ -169,7 +169,7 @@ class DeclaracionJuradaService {
 
   async obtenerTodosContribuyentes() {
     try {
-      // 🎯 USAR SERVICIO SATGIZ
+      //  USAR SERVICIO SATGIZ
       const contribuyentes = await ContribuyenteService.obtenerTodos();
       
       // Transformar datos al formato esperado por Declaración Jurada
@@ -191,7 +191,7 @@ class DeclaracionJuradaService {
       
       return contribuyentesTransformados;
     } catch (error) {
-      // 🔄 FALLBACK A DATOS TEMPORALES
+      // FALLBACK A DATOS TEMPORALES
       console.warn("Error al obtener contribuyentes de SATGIZ, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 300));
       return this.contribuyentesTemp;
@@ -204,7 +204,7 @@ class DeclaracionJuradaService {
         return this.obtenerTodosContribuyentes();
       }
 
-      // 🎯 OBTENER TODOS LOS CONTRIBUYENTES Y FILTRAR LOCALMENTE
+      // OBTENER TODOS LOS CONTRIBUYENTES Y FILTRAR LOCALMENTE
       const todosContribuyentes = await this.obtenerTodosContribuyentes();
       const terminoLower = termino.toLowerCase();
       
@@ -215,7 +215,7 @@ class DeclaracionJuradaService {
         contribuyente.c_num_documento?.includes(termino)
       );
     } catch (error) {
-      // 🔄 FALLBACK A BÚSQUEDA EN DATOS TEMPORALES
+      // FALLBACK A BÚSQUEDA EN DATOS TEMPORALES
       console.warn("Error en búsqueda, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 300));
       
@@ -231,7 +231,7 @@ class DeclaracionJuradaService {
 
   async obtenerContribuyentePorDocumento(documento) {
     try {
-      // 🎯 USAR SERVICIO SATGIZ
+      //  USAR SERVICIO SATGIZ
       const contribuyente = await ContribuyenteService.obtenerPorDocumento(documento);
       
       if (contribuyente) {
@@ -247,13 +247,13 @@ class DeclaracionJuradaService {
           c_email: contribuyente.c_correo_electronico || ""
         };
       } else {
-        // 🔄 FALLBACK A DATOS TEMPORALES
+        // FALLBACK A DATOS TEMPORALES
         console.warn("Contribuyente no encontrado en SATGIZ, usando datos temporales");
         await new Promise(resolve => setTimeout(resolve, 200));
         return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
       }
     } catch (error) {
-      // 🔄 FALLBACK A DATOS TEMPORALES
+      // FALLBACK A DATOS TEMPORALES
       console.warn("Error al obtener contribuyente de SATGIZ, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 200));
       return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
@@ -289,7 +289,7 @@ class DeclaracionJuradaService {
 
   async obtenerDeclaracionesPorContribuyente(documento) {
     try {
-      // 🎯 INTENTAR API PRIMERO
+      // INTENTAR API PRIMERO
       const data = await makeGetRequest(`/declaraciones-juradas/contribuyente/${documento}`);
       const declaraciones = data.data || [];
       
@@ -308,13 +308,13 @@ class DeclaracionJuradaService {
           area_terreno: declaracion.area_terreno || "0 m²"
         }));
       } else {
-        // 🔄 FALLBACK A DATOS TEMPORALES
+        // FALLBACK A DATOS TEMPORALES
         console.warn("Usando declaraciones temporales - Backend no disponible");
         await new Promise(resolve => setTimeout(resolve, 300));
         return this.declaracionesTemp.filter(dj => dj.contribuyente_documento === documento);
       }
     } catch (error) {
-      // 🔄 FALLBACK A DATOS TEMPORALES
+      // FALLBACK A DATOS TEMPORALES
       console.warn("Error al obtener declaraciones, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 300));
       return this.declaracionesTemp.filter(dj => dj.contribuyente_documento === documento);
@@ -323,7 +323,7 @@ class DeclaracionJuradaService {
 
   async obtenerDeclaracionPorId(id) {
     try {
-      // 🎯 INTENTAR API PRIMERO
+      // INTENTAR API PRIMERO
       const data = await makeGetRequest(`/declaraciones-juradas/${id}`);
       const declaracion = data.data || null;
       
@@ -342,13 +342,13 @@ class DeclaracionJuradaService {
           area_terreno: declaracion.area_terreno || "0 m²"
         };
       } else {
-        // 🔄 FALLBACK A DATOS TEMPORALES
+        // FALLBACK A DATOS TEMPORALES
         console.warn("Usando declaración temporal - Backend no disponible");
         await new Promise(resolve => setTimeout(resolve, 200));
         return this.declaracionesTemp.find(dj => dj.id === id) || null;
       }
     } catch (error) {
-      // 🔄 FALLBACK A DATOS TEMPORALES
+      //  FALLBACK A DATOS TEMPORALES
       console.warn("Error al obtener declaración, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 200));
       return this.declaracionesTemp.find(dj => dj.id === id) || null;
@@ -357,7 +357,7 @@ class DeclaracionJuradaService {
 
   async crearDeclaracionJurada(datosDeclaracion) {
     try {
-      // 🎯 INTENTAR GUARDAR EN API
+      //  INTENTAR GUARDAR EN API
       const datosParaAPI = {
         ...datosDeclaracion,
         fecha_creacion: new Date().toISOString(),
@@ -372,7 +372,7 @@ class DeclaracionJuradaService {
         data: response.data
       };
     } catch (error) {
-      // 🔄 FALLBACK: GUARDAR EN MEMORIA TEMPORAL
+      //  FALLBACK: GUARDAR EN MEMORIA TEMPORAL
       console.warn("Error al crear en backend, guardando temporalmente:", error);
       
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -398,7 +398,7 @@ class DeclaracionJuradaService {
 
   async actualizarDeclaracionJurada(id, datosActualizados) {
     try {
-      // 🎯 INTENTAR ACTUALIZAR EN API
+      //  INTENTAR ACTUALIZAR EN API
       const response = await makePutRequest(`/declaraciones-juradas/${id}`, {
         ...datosActualizados,
         fecha_actualizacion: new Date().toISOString()
@@ -410,7 +410,7 @@ class DeclaracionJuradaService {
         data: response.data
       };
     } catch (error) {
-      // 🔄 FALLBACK: ACTUALIZAR EN MEMORIA TEMPORAL
+      //  FALLBACK: ACTUALIZAR EN MEMORIA TEMPORAL
       console.warn("Error al actualizar en backend, actualizando temporalmente:", error);
       
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -437,14 +437,14 @@ class DeclaracionJuradaService {
 
   async eliminarDeclaracionJurada(id) {
     try {
-      // 🎯 INTENTAR ELIMINAR EN API
+      //  INTENTAR ELIMINAR EN API
       await makeDeleteRequest(`/declaraciones-juradas/${id}`);
       return {
         success: true,
         message: "Declaración Jurada eliminada correctamente"
       };
     } catch (error) {
-      // 🔄 FALLBACK: ELIMINAR DE MEMORIA TEMPORAL
+      // FALLBACK: ELIMINAR DE MEMORIA TEMPORAL
       console.warn("Error al eliminar en backend, eliminando temporalmente:", error);
       
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -714,7 +714,7 @@ class DeclaracionJuradaService {
     } catch (error) {
       console.error("Error al generar PDF:", error);
       
-      // 🔄 FALLBACK: SIMULAR GENERACIÓN DE PDF
+      //  FALLBACK: SIMULAR GENERACIÓN DE PDF
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const declaracion = this.declaracionesTemp.find(dj => dj.id === idDeclaracion);
@@ -741,7 +741,7 @@ class DeclaracionJuradaService {
     } catch (error) {
       console.error("Error al validar declaración:", error);
       
-      // 🔄 FALLBACK: VALIDACIÓN BÁSICA LOCAL
+      //  FALLBACK: VALIDACIÓN BÁSICA LOCAL
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const errores = [];

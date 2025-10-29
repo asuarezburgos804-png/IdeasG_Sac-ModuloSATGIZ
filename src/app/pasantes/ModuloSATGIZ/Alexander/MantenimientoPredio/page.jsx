@@ -129,16 +129,16 @@ export default function MantenimientoPredio() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse border border-gray-300">
+                <table className="min-w-full border-collapse border border-#d1d5dc">
                   <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 p-2 text-left">Código</th>
-                      <th className="border border-gray-300 p-2 text-left">Tipo</th>
-                      <th className="border border-gray-300 p-2 text-left">Ubicación</th>
-                      <th className="border border-gray-300 p-2 text-left">Área</th>
-                      <th className="border border-gray-300 p-2 text-left">Condición</th>
-                      <th className="border border-gray-300 p-2 text-left">Documento</th>
-                      <th className="border border-gray-300 p-2 text-left">Nombre del Contribuyente</th>
+                    <tr className="bg-#f3f4f6">
+                      <th className="border border-#d1d5dc p-2 text-left">Código</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Tipo</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Ubicación</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Área</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Condición</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Documento</th>
+                      <th className="border border-#d1d5dc p-2 text-left">Nombre del Contribuyente</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -150,39 +150,39 @@ export default function MantenimientoPredio() {
                       </tr>
                     ) : resultados.length > 0 ? (
                       resultados.map((predio) => (
-                        <tr key={predio.id} className="border-b hover:bg-blue-50">
-                          <td className="p-2 border border-gray-300 font-mono">{predio.codigo}</td>
-                          <td className="p-2 border border-gray-300">
+                        <tr key={predio.id} className="border-b hover:bg-#eff6ff">
+                          <td className="p-2 border border-#d1d5dc font-mono">{predio.codigo}</td>
+                          <td className="p-2 border border-#d1d5dc">
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               predio.tipo === "URBANO" 
-                                ? "bg-blue-100 text-blue-800" 
-                                : "bg-green-100 text-green-800"
+                                ? "bg-#dbeafe text-#193cb8" 
+                                : "bg-#dcfce7 text-#016630"
                             }`}>
                               {predio.tipo}
                             </span>
                           </td>
-                          <td className="p-2 border border-gray-300">{predio.ubicacion}</td>
-                          <td className="p-2 border border-gray-300">{predio.area}</td>
-                          <td className="p-2 border border-gray-300">
+                          <td className="p-2 border border-#d1d5dc">{predio.ubicacion}</td>
+                          <td className="p-2 border border-#d1d5dc">{predio.area}</td>
+                          <td className="p-2 border border-#d1d5dc">
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               predio.condicion === "HABITADO" 
-                                ? "bg-green-100 text-green-800" 
+                                ? "bg-#dcfce7 text-#016630" 
                                 : predio.condicion === "PRODUCCION" 
-                                ? "bg-yellow-100 text-yellow-800"
+                                ? "bg-#fef9c2 text-#894b00"
                                 : predio.condicion === "CONSTRUCCION"
-                                ? "bg-orange-100 text-orange-800"
-                                : "bg-gray-100 text-gray-800"
+                                ? "bg-#ffedd4 text-#9f2d00"
+                                : "bg-#f3f4f6 text-#1e2939"
                             }`}>
                               {predio.condicion}
                             </span>
                           </td>
-                          <td className="p-2 border border-gray-300 font-mono">{predio.documento}</td>
-                          <td className="p-2 border border-gray-300">{predio.nombreContribuyente}</td>
+                          <td className="p-2 border border-#d1d5dc font-mono">{predio.documento}</td>
+                          <td className="p-2 border border-#d1d5dc">{predio.nombreContribuyente}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="7" className="p-4 text-center text-gray-500">
+                        <td colSpan="7" className="p-4 text-center text-#6a7282">
                           {busqueda ? "No se encontraron resultados" : "Ingrese un término de búsqueda o registre un nuevo predio"}
                         </td>
                       </tr>
@@ -221,7 +221,7 @@ export default function MantenimientoPredio() {
                 &lt;&lt; Volver atrás
               </Button>
 
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+              <div className="bg-#6a7282 border border-#05df72 text-#008236 px-4 py-3 rounded relative mb-4">
                 <span className="block sm:inline">
                   El predio fue registrado exitosamente.
                 </span>
@@ -293,7 +293,7 @@ function VerificacionPredio({ tipoPredio, onContinuarRegistro, onVolver }) {
         &lt;&lt; Volver atrás
       </Button>
 
-      <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4">
+      <div className="bg-#fef9c2 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4">
         <span className="block sm:inline">
           <strong>Verifique si el predio a registrar ya existe.</strong> Si no hay registro presione continuar!
         </span>

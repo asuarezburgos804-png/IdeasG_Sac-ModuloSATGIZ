@@ -34,6 +34,10 @@ export default function DeclaracionJurada() {
   const [distritos, setDistritos] = useState([]);
   const [cargandoUbicaciones, setCargandoUbicaciones] = useState(false);
 
+  // Estados para tipos de vía
+  const [tiposVia, setTiposVia] = useState([]);
+  const [cargandoTiposVia, setCargandoTiposVia] = useState(false);
+
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
     // Datos básicos
@@ -189,6 +193,32 @@ export default function DeclaracionJurada() {
     };
 
     cargarDepartamentos();
+  }, []);
+
+  // Cargar tipos de vía al montar el componente
+  useEffect(() => {
+    const cargarTiposVia = async () => {
+      try {
+        setCargandoTiposVia(true);
+        const tiposViaData = await DeclaracionJuradaService.obtenerTiposVia();
+        console.log("Tipos de vía cargados:", tiposViaData);
+        setTiposVia(tiposViaData);
+      } catch (error) {
+        console.error("Error al cargar tipos de vía:", error);
+        // Datos de prueba si falla la API
+        setTiposVia([
+          { id: "01", nombre: "AVENIDA" },
+          { id: "02", nombre: "CALLE" },
+          { id: "03", nombre: "JIRÓN" },
+          { id: "04", nombre: "PASAJE" },
+          { id: "05", nombre: "PLAZA" }
+        ]);
+      } finally {
+        setCargandoTiposVia(false);
+      }
+    };
+
+    cargarTiposVia();
   }, []);
 
   // Manejar cambio de departamento - cargar provincias
@@ -717,9 +747,16 @@ export default function DeclaracionJurada() {
                 />
                 <Select
                   label="Tipo de Vía"
-                  value={formData.tipo_via}
+                  selectedKeys={formData.tipo_via ? [formData.tipo_via] : []}
                   onChange={(e) => handleInputChange("tipo_via", e.target.value)}
-                />
+                  isLoading={cargandoTiposVia}
+                >
+                  {tiposVia.map((tipoVia) => (
+                    <SelectItem key={tipoVia.id} value={tipoVia.id}>
+                      {tipoVia.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Input
                   label="Nombre de Vía"
                   value={formData.nombre_via}
