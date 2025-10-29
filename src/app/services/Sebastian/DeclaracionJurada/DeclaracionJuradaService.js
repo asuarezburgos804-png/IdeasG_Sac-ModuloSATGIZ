@@ -176,9 +176,9 @@ class DeclaracionJuradaService {
       const contribuyentesTransformados = [];
       
       for (const contribuyente of contribuyentes) {
-        const direccion = await this.obtenerDireccionContribuyente(contribuyente.c_num_documento);
+        const direccion = await this.obtenerDireccionContribuyente(contribuyente.id);
         contribuyentesTransformados.push({
-          c_codigo: `DJ-${contribuyente.c_num_documento}-${new Date().getFullYear()}`,
+          c_codigo: `DJ-${contribuyente.id}-${new Date().getFullYear()}`,
           c_tipo_contribuyente: contribuyente.c_tipo_contribuyente || "PERSONA NATURAL",
           c_nombre: contribuyente.c_nombre || "N/A",
           c_num_documento: contribuyente.c_num_documento || "N/A",
@@ -229,15 +229,15 @@ class DeclaracionJuradaService {
     }
   }
 
-  async obtenerContribuyentePorDocumento(documento) {
+  async obtenerContribuyentePorDocumento(id) {
     try {
       //  USAR SERVICIO SATGIZ
-      const contribuyente = await ContribuyenteService.obtenerPorDocumento(documento);
+      const contribuyente = await ContribuyenteService.obtenerPorDocumento(id);
       
       if (contribuyente) {
-        const direccion = await this.obtenerDireccionContribuyente(contribuyente.c_num_documento);
+        const direccion = await this.obtenerDireccionContribuyente(contribuyente.id);
         return {
-          c_codigo: `DJ-${contribuyente.c_num_documento}-${new Date().getFullYear()}`,
+          c_codigo: `DJ-${contribuyente.id}-${new Date().getFullYear()}`,
           c_tipo_contribuyente: contribuyente.c_tipo_contribuyente || "PERSONA NATURAL",
           c_nombre: contribuyente.c_nombre || "N/A",
           c_num_documento: contribuyente.c_num_documento || "N/A",
@@ -250,21 +250,21 @@ class DeclaracionJuradaService {
         // FALLBACK A DATOS TEMPORALES
         console.warn("Contribuyente no encontrado en SATGIZ, usando datos temporales");
         await new Promise(resolve => setTimeout(resolve, 200));
-        return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
+        return this.contribuyentesTemp.find(c => c.id === id) || null;
       }
     } catch (error) {
       // FALLBACK A DATOS TEMPORALES
       console.warn("Error al obtener contribuyente de SATGIZ, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 200));
-      return this.contribuyentesTemp.find(c => c.c_num_documento === documento) || null;
+      return this.contribuyentesTemp.find(c => c.id === id) || null;
     }
   }
 
   // ========== MÉTODOS AUXILIARES PARA UBICACIONES ==========
 
-  async obtenerDireccionContribuyente(numeroDocumento) {
+  async obtenerDireccionContribuyente(id) {
     try {
-      const ubicaciones = await UbicacionContribuyenteService.obtenerPorContribuyente(numeroDocumento);
+      const ubicaciones = await UbicacionContribuyenteService.obtenerPorContribuyente(id);
       if (ubicaciones && ubicaciones.length > 0) {
         // Usar la primera ubicación para obtener la dirección
         return UbicacionContribuyenteService.formatearDireccion(ubicaciones[0]);
@@ -276,9 +276,9 @@ class DeclaracionJuradaService {
     }
   }
 
-  async obtenerUbicacionesContribuyente(numeroDocumento) {
+  async obtenerUbicacionesContribuyente(id) {
     try {
-      return await UbicacionContribuyenteService.obtenerPorContribuyente(numeroDocumento);
+      return await UbicacionContribuyenteService.obtenerPorContribuyente(id);
     } catch (error) {
       console.warn("Error al obtener ubicaciones del contribuyente:", error);
       return [];
@@ -287,21 +287,21 @@ class DeclaracionJuradaService {
 
   // ========== MÉTODOS PARA DECLARACIONES (HÍBRIDOS) ==========
 
-  async obtenerDeclaracionesPorContribuyente(documento) {
+  async obtenerDeclaracionesPorContribuyente(id) {
     try {
       // INTENTAR API PRIMERO
-      const data = await makeGetRequest(`/declaraciones-juradas/contribuyente/${documento}`);
+      const data = await makeGetRequest(`/declaraciones-juradas/contribuyente/${id}`);
       const declaraciones = data.data || [];
       
       if (declaraciones.length > 0) {
         return declaraciones.map(declaracion => ({
           id: declaracion.id || declaracion.codigo,
-          contribuyente_documento: declaracion.contribuyente_documento || documento,
+          contribuyente_documento: declaracion.contribuyente_id || id,
           periodo: declaracion.periodo || new Date().getFullYear().toString(),
           estado: declaracion.estado || "PENDIENTE",
           fecha_presentacion: declaracion.fecha_presentacion || new Date().toISOString().split('T')[0],
           monto_declarado: declaracion.monto_declarado || 0,
-          codigo: declaracion.codigo || `DJ-${documento}-${declaracion.periodo || new Date().getFullYear()}`,
+          codigo: declaracion.codigo || `DJ-${id}-${declaracion.periodo || new Date().getFullYear()}`,
           tipo_predio: declaracion.tipo_predio || "URBANO",
           ubicacion: declaracion.ubicacion || "Sin ubicación",
           deduccion: declaracion.deduccion || "NO",
@@ -311,13 +311,13 @@ class DeclaracionJuradaService {
         // FALLBACK A DATOS TEMPORALES
         console.warn("Usando declaraciones temporales - Backend no disponible");
         await new Promise(resolve => setTimeout(resolve, 300));
-        return this.declaracionesTemp.filter(dj => dj.contribuyente_documento === documento);
+        return this.declaracionesTemp.filter(dj => dj.contribuyente_id === id);
       }
     } catch (error) {
       // FALLBACK A DATOS TEMPORALES
       console.warn("Error al obtener declaraciones, usando datos temporales:", error);
       await new Promise(resolve => setTimeout(resolve, 300));
-      return this.declaracionesTemp.filter(dj => dj.contribuyente_documento === documento);
+      return this.declaracionesTemp.filter(dj => dj.contribuyente_id === id);
     }
   }
 
@@ -335,7 +335,7 @@ class DeclaracionJuradaService {
           estado: declaracion.estado || "PENDIENTE",
           fecha_presentacion: declaracion.fecha_presentacion || new Date().toISOString().split('T')[0],
           monto_declarado: declaracion.monto_declarado || 0,
-          codigo: declaracion.codigo || `DJ-${declaracion.contribuyente_documento || ""}-${declaracion.periodo || new Date().getFullYear()}`,
+          codigo: declaracion.codigo || `DJ-${declaracion.contribuyente_id || ""}-${declaracion.periodo || new Date().getFullYear()}`,
           tipo_predio: declaracion.tipo_predio || "URBANO",
           ubicacion: declaracion.ubicacion || "Sin ubicación",
           deduccion: declaracion.deduccion || "NO",
@@ -953,10 +953,10 @@ class DeclaracionJuradaService {
 
   // ========== MÉTODOS PARA OBTENER DATOS COMPLETOS DE CONTRIBUYENTE ==========
 
-  async obtenerDatosCompletosContribuyente(documento) {
+  async obtenerDatosCompletosContribuyente(id) {
     try {
-      const contribuyente = await this.obtenerContribuyentePorDocumento(documento);
-      const ubicaciones = await this.obtenerUbicacionesContribuyente(documento);
+      const contribuyente = await this.obtenerContribuyentePorDocumento(id);
+      const ubicaciones = await this.obtenerUbicacionesContribuyente(id);
       
       return {
         contribuyente,

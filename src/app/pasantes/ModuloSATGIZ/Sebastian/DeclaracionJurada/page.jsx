@@ -77,7 +77,7 @@ export default function DeclaracionJurada() {
     zona_predio_rural: "",
     nombre_predio: "",
     autoriza_deduccion: "",
-    uso_predio_urbano: "",
+    uso_predio_rural: "",
     estado_predio: "",
     tipo_predio: "",
     condicion_predio: "",
@@ -148,7 +148,7 @@ export default function DeclaracionJurada() {
 
         const resultadosMapeados = contribuyentesFiltrados.map(
           (contribuyente) => ({
-            id: contribuyente.c_num_documento,
+            id: contribuyente.id_contribuyente || contribuyente.c_id || contribuyente.id,
             codigo: contribuyente.c_codigo,
             tipoContribuyente: contribuyente.c_tipo_contribuyente,
             nombre: contribuyente.c_nombre,
@@ -298,10 +298,10 @@ export default function DeclaracionJurada() {
     setContribuyenteSeleccionado(contribuyente);
     setCargandoDeclaraciones(true);
 
-    try {
+    try { consoleLog(contribuyente)
       const declaracionesContribuyente =
         await DeclaracionJuradaService.obtenerDeclaracionesPorContribuyente(
-          contribuyente.documento
+          contribuyente.id
         );
       setDeclaraciones(declaracionesContribuyente);
     } catch (error) {
@@ -402,8 +402,8 @@ export default function DeclaracionJurada() {
     try {
       const datosCompletos = {
         ...formData,
-        contribuyente_documento: contribuyenteSeleccionado.documento,
-        codigo: `DJ-${contribuyenteSeleccionado.documento}-${formData.periodo}`,
+        contribuyente_id: contribuyenteSeleccionado.id,
+        codigo: `DJ-${contribuyenteSeleccionado.id}-${formData.periodo}`,
         ubicacion:
           formData.tipo_predio === "URBANO"
             ? `${formData.tipo_via} ${formData.nombre_via} ${formData.numero_municipal}`
@@ -423,7 +423,7 @@ export default function DeclaracionJurada() {
       // Volver a la fase 2 y actualizar lista
       const declaracionesActualizadas =
         await DeclaracionJuradaService.obtenerDeclaracionesPorContribuyente(
-          contribuyenteSeleccionado.documento
+          contribuyenteSeleccionado.id
         );
       setDeclaraciones(declaracionesActualizadas);
       setFase(2);
@@ -460,7 +460,7 @@ export default function DeclaracionJurada() {
                 Nombre/Razón Social
               </th>
               <th className="border border-#d1d5dc p-2 text-left">
-                Nro. Doc./RUC
+                ID Contribuyente
               </th>
               <th className="border border-#d1d5dc p-2 text-left">Acción</th>
             </tr>
@@ -499,7 +499,7 @@ export default function DeclaracionJurada() {
                     {contribuyente.nombre}
                   </td>
                   <td className="p-2 border border-#d1d5dc font-mono text-sm">
-                    {contribuyente.documento}
+                    {contribuyente.id}
                   </td>
                   <td className="p-2 border border-#d1d5dc">
                     <Button
@@ -539,7 +539,7 @@ export default function DeclaracionJurada() {
           <strong>Nombre:</strong> {contribuyenteSeleccionado.nombre}
         </p>
         <p>
-          <strong>Documento:</strong> {contribuyenteSeleccionado.documento}
+          <strong>ID Contribuyente:</strong> {contribuyenteSeleccionado.id}
         </p>
         <p>
           <strong>Tipo:</strong> {contribuyenteSeleccionado.tipoContribuyente}
@@ -645,7 +645,7 @@ export default function DeclaracionJurada() {
           <strong>Contribuyente:</strong> {contribuyenteSeleccionado.nombre}
         </p>
         <p>
-          <strong>Documento:</strong> {contribuyenteSeleccionado.documento}
+          <strong>ID Contribuyente:</strong> {contribuyenteSeleccionado.id}
         </p>
         <p>
           <strong>Periodo:</strong> {formData.periodo}
@@ -779,9 +779,9 @@ export default function DeclaracionJurada() {
                   onChange={(e) => handleInputChange("manzana_urbana", e.target.value)}
                 />
                 <Input
-                  label="Lote Urbana"
-                  value={formData.lote_urbana}
-                  onChange={(e) => handleInputChange("lote_urbana", e.target.value)}
+                  label="Lote Urbano"
+                  value={formData.lote_urbano}
+                  onChange={(e) => handleInputChange("lote_urbano, e.target.value)}
                 />
                 <Select
                   label="Tipo de Denominación Urbana"
@@ -1009,9 +1009,9 @@ export default function DeclaracionJurada() {
                 <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="Uso del Predio Urbano"
-                    value={formData.uso_predio_urbano}
-                    onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
+                    label="Uso del Predio Rural"
+                    value={formData.uso_predio_rural}
+                    onChange={(e) => handleInputChange("uso_predio_rural", e.target.value)}
                   />
                   <Select
                     label="Estado del Predio"
