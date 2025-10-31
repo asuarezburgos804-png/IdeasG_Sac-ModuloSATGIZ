@@ -57,6 +57,7 @@ export default function DeclaracionJurada() {
     lote_urbano: "",
     tipo_denominacion_urbana: "",
     nombre_denominacion_urbana: "",
+    deduccion: "",
     autoriza_deduccion: "",
     uso_predio_urbano: "",
     estado_predio: "",
@@ -76,6 +77,7 @@ export default function DeclaracionJurada() {
     distrito: "",
     zona_predio_rural: "",
     nombre_predio: "",
+    deduccion: "",
     autoriza_deduccion: "",
     uso_predio_rural: "",
     estado_predio: "",
@@ -803,19 +805,17 @@ export default function DeclaracionJurada() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.autoriza_deduccion || false}
-                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.checked)}
-                        className="h-5 w-5 rounded border-#d1d5dc text-#155dfc focus:ring-#155dfc"
+                      <Input
+                        label="La deducción sería"
+                        value={formData.deduccion}
+                        onChange={(e) => handleInputChange("deduccion", e.target.value)}
                       />
-                      <span className="text-sm font-medium text-#364153">
-                        ¿Se autoriza la deducción?
-                      </span>
+                      <Select
+                        label="¿Se autoriza?"
+                        value={formData.autoriza_deduccion}
+                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
+                      />
                     </label>
-                    <p className="text-sm text-#6a7282 mt-1">
-                      Marque esta casilla si autoriza la deducción aplicable al predio
-                    </p>
                   </div>
                 </div>
               </div>
@@ -988,19 +988,17 @@ export default function DeclaracionJurada() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.autoriza_deduccion || false}
-                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.checked)}
-                        className="h-5 w-5 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
+                      <Input
+                        label="La deducción sería"
+                        value={formData.deduccion}
+                        onChange={(e) => handleInputChange("deduccion", e.target.value)}
                       />
-                      <span className="text-sm font-medium text-#364153">
-                        ¿Se autoriza la deducción?
-                      </span>
+                      <Select
+                        label="¿Se autoriza?"
+                        value={formData.autoriza_deduccion}
+                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
+                      />
                     </label>
-                    <p className="text-sm text-#6a7282 mt-1">
-                      Marque esta casilla si autoriza la deducción aplicable al predio
-                    </p>
                   </div>
                 </div>
               </div>
