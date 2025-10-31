@@ -297,11 +297,12 @@ export default function DeclaracionJurada() {
   const handleSeleccionarContribuyente = async (contribuyente) => {
     setContribuyenteSeleccionado(contribuyente);
     setCargandoDeclaraciones(true);
-
-    try { consoleLog(contribuyente)
+    try {
+      console.log("Contribuyente seleccionado:", contribuyente);
+      // Usar el nombre del contribuyente para buscar declaraciones (servicio SATGIZ busca por nombre)
       const declaracionesContribuyente =
-        await DeclaracionJuradaService.obtenerDeclaracionesPorContribuyente(
-          contribuyente.id
+        await DeclaracionJuradaService.buscarDeclaracionesPorContribuyente(
+          contribuyente.nombre
         );
       setDeclaraciones(declaracionesContribuyente);
     } catch (error) {
@@ -422,8 +423,8 @@ export default function DeclaracionJurada() {
 
       // Volver a la fase 2 y actualizar lista
       const declaracionesActualizadas =
-        await DeclaracionJuradaService.obtenerDeclaracionesPorContribuyente(
-          contribuyenteSeleccionado.id
+        await DeclaracionJuradaService.buscarDeclaracionesPorContribuyente(
+          contribuyenteSeleccionado.nombre
         );
       setDeclaraciones(declaracionesActualizadas);
       setFase(2);
@@ -781,7 +782,7 @@ export default function DeclaracionJurada() {
                 <Input
                   label="Lote Urbano"
                   value={formData.lote_urbano}
-                  onChange={(e) => handleInputChange("lote_urbano, e.target.value)}
+                  onChange={(e) => handleInputChange("lote_urbano", e.target.value)}
                 />
                 <Select
                   label="Tipo de Denominación Urbana"

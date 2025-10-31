@@ -39,6 +39,13 @@ import {
 import { ContribuyenteService } from "@/app/services/SATGIZ/contribuyenteService";
 import { UbicacionContribuyenteService } from "@/app/services/SATGIZ/ubicacionContribuyenteService";
 
+// Importar servicios de declaración jurada de SATGIZ
+import { DeclaracionJuradaService as SATGIZDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Declaracion_Jurada_Services";
+import { DatosUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Datos_Urbano_Declaracion_Jurada_Services";
+import { DatosComplementariosUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Datos_Complementarios_Urbano_Declaracion_Jurada_Services";
+import { DeduccionUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Deduccion_Urbano_Declaracion_Jurada_Services";
+import { UbicacionUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Ubicacion_Urbano_Declaracion_Jurada_Services";
+
 class DeclaracionJuradaService {
   constructor() {
     //  DATOS TEMPORALES PARA CONTRIBUYENTES (mientras desarrollas backend)
@@ -287,6 +294,38 @@ class DeclaracionJuradaService {
 
   // ========== MÉTODOS PARA DECLARACIONES (HÍBRIDOS) ==========
 
+//-----------------------------------------------------------------------------------------------------------
+  // Buscar declaraciones por nombre del contribuyente (usando servicios SATGIZ)
+  async buscarDeclaracionesPorContribuyente(nombre) {
+    try {
+      // INTENTAR USAR SERVICIO SATGIZ
+      const declaracionesSATGIZ = await SATGIZDeclaracionJuradaService.obtenerDeclaracionesPorContribuyente(nombre);
+      
+      // Mapear datos SATGIZ al formato esperado
+      return declaracionesSATGIZ.map(declaracion => ({
+        id: declaracion.id || declaracion.codigo,
+        contribuyente_documento: declaracion.c_num_documento || "",
+        periodo: declaracion.c_anio_liquidacion || new Date().getFullYear().toString(),
+        estado: declaracion.estado || "PENDIENTE",
+        fecha_presentacion: declaracion.fecha_presentacion || new Date().toISOString().split('T')[0],
+        monto_declarado: declaracion.monto_declarado || 0,
+        codigo: declaracion.codigo || `DJ-${declaracion.c_num_documento || ""}-${declaracion.c_anio_liquidacion || new Date().getFullYear()}`,
+        tipo_predio: declaracion.c_tipo_predio || "URBANO",
+        ubicacion: declaracion.ubicacion || "Sin ubicación",
+        deduccion: declaracion.deduccion || "NO",
+        area_terreno: declaracion.area_terreno || "0 m²"
+      }));
+    } catch (error) {
+      // FALLBACK A DATOS TEMPORALES
+      console.warn("Error al obtener declaraciones de SATGIZ, usando datos temporales:", error);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return this.declaracionesTemp.filter(dj =>
+        dj.contribuyente_documento?.toLowerCase().includes(nombre?.toLowerCase()) ||
+        dj.codigo?.toLowerCase().includes(nombre?.toLowerCase())
+      );
+    }
+  }
+//-----------------------------------------------------------------------------------------------------------
   async obtenerDeclaracionesPorContribuyente(id) {
     try {
       // INTENTAR API PRIMERO
