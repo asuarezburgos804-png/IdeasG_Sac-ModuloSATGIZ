@@ -326,40 +326,7 @@ class DeclaracionJuradaService {
     }
   }
 //-----------------------------------------------------------------------------------------------------------
-  async obtenerDeclaracionesPorContribuyente(id) {
-    try {
-      // INTENTAR API PRIMERO
-      const data = await makeGetRequest(`/declaraciones-juradas/contribuyente/${id}`);
-      const declaraciones = data.data || [];
-      
-      if (declaraciones.length > 0) {
-        return declaraciones.map(declaracion => ({
-          id: declaracion.id || declaracion.codigo,
-          contribuyente_documento: declaracion.contribuyente_id || id,
-          periodo: declaracion.periodo || new Date().getFullYear().toString(),
-          estado: declaracion.estado || "PENDIENTE",
-          fecha_presentacion: declaracion.fecha_presentacion || new Date().toISOString().split('T')[0],
-          monto_declarado: declaracion.monto_declarado || 0,
-          codigo: declaracion.codigo || `DJ-${id}-${declaracion.periodo || new Date().getFullYear()}`,
-          tipo_predio: declaracion.tipo_predio || "URBANO",
-          ubicacion: declaracion.ubicacion || "Sin ubicación",
-          deduccion: declaracion.deduccion || "NO",
-          area_terreno: declaracion.area_terreno || "0 m²"
-        }));
-      } else {
-        // FALLBACK A DATOS TEMPORALES
-        console.warn("Usando declaraciones temporales - Backend no disponible");
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return this.declaracionesTemp.filter(dj => dj.contribuyente_id === id);
-      }
-    } catch (error) {
-      // FALLBACK A DATOS TEMPORALES
-      console.warn("Error al obtener declaraciones, usando datos temporales:", error);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return this.declaracionesTemp.filter(dj => dj.contribuyente_id === id);
-    }
-  }
-
+//------------------------------REVISAR----------------------------------------------------------------------
   async obtenerDeclaracionPorId(id) {
     try {
       // INTENTAR API PRIMERO
@@ -393,6 +360,7 @@ class DeclaracionJuradaService {
       return this.declaracionesTemp.find(dj => dj.id === id) || null;
     }
   }
+//-----------------------------------------------------------------------------------------------------------
 
   async crearDeclaracionJurada(datosDeclaracion) {
     try {
@@ -525,7 +493,20 @@ class DeclaracionJuradaService {
 
   async obtenerDepartamentos() {
     try {
-      return await getDepartamentos();
+      // Datos estáticos permanentes de departamentos
+      const departamentosEstaticos = [
+        { id: "01", nombre: "LIMA" },
+        { id: "02", nombre: "AREQUIPA" },
+        { id: "03", nombre: "CUSCO" },
+        { id: "04", nombre: "LA LIBERTAD" },
+        { id: "05", nombre: "PIURA" },
+        { id: "06", nombre: "LAMBAYEQUE" },
+        { id: "07", nombre: "ANCASH" },
+        { id: "08", nombre: "JUNIN" },
+        { id: "09", nombre: "PUNO" },
+        { id: "10", nombre: "ICA" }
+      ];
+      return departamentosEstaticos;
     } catch (error) {
       console.error("Error al obtener departamentos:", error);
       return [];
@@ -534,7 +515,21 @@ class DeclaracionJuradaService {
 
   async obtenerProvincias(idDepartamento) {
     try {
-      return await getProvincias(idDepartamento);
+      // Datos estáticos permanentes de provincias
+      const provinciasEstaticas = [
+        { id: "0101", nombre: "LIMA", departamento_id: "01" },
+        { id: "0102", nombre: "CAÑETE", departamento_id: "01" },
+        { id: "0103", nombre: "HUARAL", departamento_id: "01" },
+        { id: "0104", nombre: "HUAURA", departamento_id: "01" },
+        { id: "0201", nombre: "AREQUIPA", departamento_id: "02" },
+        { id: "0202", nombre: "CAYLLOMA", departamento_id: "02" },
+        { id: "0203", nombre: "CAMANA", departamento_id: "02" },
+        { id: "0301", nombre: "CUSCO", departamento_id: "03" },
+        { id: "0302", nombre: "QUISPICANCHI", departamento_id: "03" },
+        { id: "0303", nombre: "CALCA", departamento_id: "03" }
+      ];
+      
+      return provinciasEstaticas.filter(provincia => provincia.departamento_id === idDepartamento);
     } catch (error) {
       console.error("Error al obtener provincias:", error);
       return [];
@@ -543,7 +538,36 @@ class DeclaracionJuradaService {
 
   async obtenerDistritos(idProvincia) {
     try {
-      return await getDistritos(idProvincia);
+      // Datos estáticos permanentes de distritos
+      const distritosEstaticos = [
+        { id: "010101", nombre: "LIMA", provincia_id: "0101" },
+        { id: "010102", nombre: "MIRAFLORES", provincia_id: "0101" },
+        { id: "010103", nombre: "SAN ISIDRO", provincia_id: "0101" },
+        { id: "010104", nombre: "BARRANCO", provincia_id: "0101" },
+        { id: "010105", nombre: "SURQUILLO", provincia_id: "0101" },
+        { id: "010201", nombre: "SAN VICENTE DE CAÑETE", provincia_id: "0102" },
+        { id: "010202", nombre: "IMPERIAL", provincia_id: "0102" },
+        { id: "010203", nombre: "LUNAHUANA", provincia_id: "0102" },
+        { id: "010301", nombre: "HUARAL", provincia_id: "0103" },
+        { id: "010302", nombre: "CHANCAY", provincia_id: "0103" },
+        { id: "010401", nombre: "HUACHO", provincia_id: "0104" },
+        { id: "010402", nombre: "SANTA MARÍA", provincia_id: "0104" },
+        { id: "020101", nombre: "AREQUIPA", provincia_id: "0201" },
+        { id: "020102", nombre: "CAYMA", provincia_id: "0201" },
+        { id: "020103", nombre: "CERRO COLORADO", provincia_id: "0201" },
+        { id: "020201", nombre: "CHIVAY", provincia_id: "0202" },
+        { id: "020202", nombre: "CAYLLOMA", provincia_id: "0202" },
+        { id: "020301", nombre: "CAMANÁ", provincia_id: "0203" },
+        { id: "030101", nombre: "CUSCO", provincia_id: "0301" },
+        { id: "030102", nombre: "SAN JERÓNIMO", provincia_id: "0301" },
+        { id: "030103", nombre: "SAN SEBASTIÁN", provincia_id: "0301" },
+        { id: "030201", nombre: "URCOS", provincia_id: "0302" },
+        { id: "030202", nombre: "ANDAHUAYLILLAS", provincia_id: "0302" },
+        { id: "030301", nombre: "CALCA", provincia_id: "0303" },
+        { id: "030302", nombre: "URUBAMBA", provincia_id: "0303" }
+      ];
+      
+      return distritosEstaticos.filter(distrito => distrito.provincia_id === idProvincia);
     } catch (error) {
       console.error("Error al obtener distritos:", error);
       return [];
