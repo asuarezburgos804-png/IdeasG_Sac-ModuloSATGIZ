@@ -46,6 +46,7 @@ export default function DeclaracionJurada() {
   const [tiposDenominacion, setTiposDenominacion] = useState([]);
   const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
 
+
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
     // Datos básicos
@@ -354,6 +355,22 @@ export default function DeclaracionJurada() {
       }
     }
   };
+
+  //Cargar Autorización de deducciones al montar el componente
+  useEffect(() => {
+    async function cargarDeduccion() {
+      setCargandoOpcionesAutorizacion(true);
+      try {
+        const data = await DeclaracionJuradaService.DeduccionPorId(id);
+        setFormData((prev) => ({ ...prev, ...data }));
+        setOpcionesAutorizacion(data.opcionesAutorizacion || ["Sí", "No"]);
+      } catch (error) {
+        console.error("Error al cargar deducción:", error);
+      } finally {
+        setCargandoOpcionesAutorizacion(false);
+      }
+    }
+  });
 
   // Manejar selección de contribuyente - Transición a FASE 2
   const handleSeleccionarContribuyente = async (contribuyente) => {
@@ -879,9 +896,17 @@ export default function DeclaracionJurada() {
                       />
                       <Select
                         label="¿Se autoriza?"
-                        value={formData.autoriza_deduccion}
+                        selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
                         onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
-                      />
+                        isLoading={cargandoOpcionesAutorizacion}
+                        isDisabled={!formData.deduccion}
+                      >
+                        {opcionesAutorizacion.map((opcionesAutorizacion) => (
+                          <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
+                            {opcionesAutorizacion.nombre}
+                          </SelectItem>
+                        ))}
+                      </Select>
                     </label>
                   </div>
                 </div>
@@ -1077,9 +1102,17 @@ export default function DeclaracionJurada() {
                       />
                       <Select
                         label="¿Se autoriza?"
-                        value={formData.autoriza_deduccion}
+                        selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
                         onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
-                      />
+                        isLoading={cargandoOpcionesAutorizacion}
+                        isDisabled={!formData.deduccion}
+                      >
+                        {opcionesAutorizacion.map((opcionesAutorizacion) => (
+                          <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
+                            {opcionesAutorizacion.nombre}
+                          </SelectItem>
+                        ))}
+                      </Select>
                     </label>
                   </div>
                 </div>

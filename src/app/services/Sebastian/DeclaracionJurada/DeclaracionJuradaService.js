@@ -739,6 +739,33 @@ class DeclaracionJuradaService {
     }
   }
 
+  async DeduccionPorId(id) {
+    try {
+      // Llamada al servicio que obtiene la deducción
+      const response = await DeduccionUrbanoDeclaracionJuradaService.obtenerPorId(id);
+
+      if (response && response.data) {
+        const deduccion = response.data;
+
+        // Agregamos el campo de opciones para el select de "¿Se autoriza?"
+        const opcionesAutorizacion = ["Sí", "No"];
+
+        return {
+          ...deduccion,
+          opcionesAutorizacion, // ← esto lo usas en tu Select del front
+        };
+      } else {
+        console.warn("No se encontró información de deducción para el ID:", id);
+        return {
+          opcionesAutorizacion: ["Sí", "No"], // devuelve igual las opciones
+        };
+      }
+    } catch (error) {
+      console.error("Error al obtener deducción por ID:", error);
+      throw error;
+    }
+  }                          
+
   // ========== MÉTODOS PARA ESTADÍSTICAS ==========
 
   async obtenerEstadisticasDeclaraciones() {
