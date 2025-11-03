@@ -38,6 +38,14 @@ export default function DeclaracionJurada() {
   const [tiposVia, setTiposVia] = useState([]);
   const [cargandoTiposVia, setCargandoTiposVia] = useState(false);
 
+  // Estados para tipos de predio
+  const [tiposPredio, setTiposPredio] = useState([]);
+  const [cargandoTiposPredio, setCargandoTiposPredio] = useState(false);
+
+  // Estados para tipos de denominación
+  const [tiposDenominacion, setTiposDenominacion] = useState([]);
+  const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
+
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
     // Datos básicos
@@ -221,6 +229,58 @@ export default function DeclaracionJurada() {
     };
 
     cargarTiposVia();
+  }, []);
+
+  // Cargar tipos de predio al montar el componente
+  useEffect(() => {
+    const cargarTiposPredio = async () => {
+      try {
+        setCargandoTiposPredio(true);
+        const tiposPredioData = await DeclaracionJuradaService.obtenerClasificacionesPredio();
+        console.log("Tipos de predio cargados:", tiposPredioData);
+        setTiposPredio(tiposPredioData);
+      } catch (error) {
+        console.error("Error al cargar tipos de predio:", error);
+        // Datos de prueba si falla la API
+        setTiposPredio([
+          { id: "01", nombre: "RESIDENCIAL" },
+          { id: "02", nombre: "COMERCIAL" },
+          { id: "03", nombre: "INDUSTRIAL" },
+          { id: "04", nombre: "AGRÍCOLA" },
+          { id: "05", nombre: "ESPECIAL" }
+        ]);
+      } finally {
+        setCargandoTiposPredio(false);
+      }
+    };
+
+    cargarTiposPredio();
+  }, []);
+
+  // Cargar tipos de denominación al montar el componente
+  useEffect(() => {
+    const cargarTiposDenominacion = async () => {
+      try {
+        setCargandoTiposDenominacion(true);
+        const tiposDenominacionData = await DeclaracionJuradaService.obtenerTiposDenominacion();
+        console.log("Tipos de denominación cargados:", tiposDenominacionData);
+        setTiposDenominacion(tiposDenominacionData);
+      } catch (error) {
+        console.error("Error al cargar tipos de denominación:", error);
+        // Datos de prueba si falla la API
+        setTiposDenominacion([
+          { id: "01", nombre: "EDIFICIO" },
+          { id: "02", nombre: "CONDOMINIO" },
+          { id: "03", nombre: "TORRE" },
+          { id: "04", nombre: "CENTRO COMERCIAL" },
+          { id: "05", nombre: "GALERÍA" }
+        ]);
+      } finally {
+        setCargandoTiposDenominacion(false);
+      }
+    };
+
+    cargarTiposDenominacion();
   }, []);
 
   // Manejar cambio de departamento - cargar provincias
@@ -788,9 +848,16 @@ export default function DeclaracionJurada() {
                 />
                 <Select
                   label="Tipo de Denominación Urbana"
-                  value={formData.tipo_denominacion_urbana}
+                  selectedKeys={formData.tipo_denominacion_urbana ? [formData.tipo_denominacion_urbana] : []}
                   onChange={(e) => handleInputChange("tipo_denominacion_urbana", e.target.value)}
-                />
+                  isLoading={cargandoTiposDenominacion}
+                >
+                  {tiposDenominacion.map((tipoDenominacion) => (
+                    <SelectItem key={tipoDenominacion.id} value={tipoDenominacion.id}>
+                      {tipoDenominacion.nombre}
+                    </SelectItem>
+                  ))}
+                </Select>
                 <Input
                   label="Nombre de Denominación Urbana"
                   value={formData.nombre_denominacion_urbana}
@@ -832,19 +899,34 @@ export default function DeclaracionJurada() {
                   />
                   <Select
                     label="Estado del Predio"
-                    value={formData.estado_predio}
+                    selectedKeys={formData.estado_predio ? [formData.estado_predio] : []}
                     onChange={(e) => handleInputChange("estado_predio", e.target.value)}
-                  />
+                  >
+                    <SelectItem key="BUENO" value="BUENO">BUENO</SelectItem>
+                    <SelectItem key="REGULAR" value="REGULAR">REGULAR</SelectItem>
+                    <SelectItem key="MALO" value="MALO">MALO</SelectItem>
+                  </Select>
                   <Select
                     label="Tipo de Predio"
-                    value={formData.tipo_predio}
+                    selectedKeys={formData.tipo_predio ? [formData.tipo_predio] : []}
                     onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
-                  />
+                    isLoading={cargandoTiposPredio}
+                  >
+                    {tiposPredio.map((tipoPredio) => (
+                      <SelectItem key={tipoPredio.id} value={tipoPredio.id}>
+                        {tipoPredio.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
                   <Select
                     label="Condición del Predio"
-                    value={formData.condicion_predio}
+                    selectedKeys={formData.condicion_predio ? [formData.condicion_predio] : []}
                     onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
-                  />
+                  >
+                    <SelectItem key="PROPIO" value="PROPIO">PROPIO</SelectItem>
+                    <SelectItem key="ALQUILADO" value="ALQUILADO">ALQUILADO</SelectItem>
+                    <SelectItem key="PRESTADO" value="PRESTADO">PRESTADO</SelectItem>
+                  </Select>
                   <Input
                     label="Área Total del Terreno (m²)"
                     type="number"
@@ -1014,19 +1096,34 @@ export default function DeclaracionJurada() {
                   />
                   <Select
                     label="Estado del Predio"
-                    value={formData.estado_predio}
+                    selectedKeys={formData.estado_predio ? [formData.estado_predio] : []}
                     onChange={(e) => handleInputChange("estado_predio", e.target.value)}
-                  />
+                  >
+                    <SelectItem key="BUENO" value="BUENO">BUENO</SelectItem>
+                    <SelectItem key="REGULAR" value="REGULAR">REGULAR</SelectItem>
+                    <SelectItem key="MALO" value="MALO">MALO</SelectItem>
+                  </Select>
                   <Select
                     label="Tipo de Predio"
-                    value={formData.tipo_predio}
+                    selectedKeys={formData.tipo_predio ? [formData.tipo_predio] : []}
                     onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
-                  />
+                    isLoading={cargandoTiposPredio}
+                  >
+                    {tiposPredio.map((tipoPredio) => (
+                      <SelectItem key={tipoPredio.id} value={tipoPredio.id}>
+                        {tipoPredio.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
                   <Select
                     label="Condición del Predio"
-                    value={formData.condicion_predio}
+                    selectedKeys={formData.condicion_predio ? [formData.condicion_predio] : []}
                     onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
-                  />
+                  >
+                    <SelectItem key="PROPIO" value="PROPIO">PROPIO</SelectItem>
+                    <SelectItem key="ALQUILADO" value="ALQUILADO">ALQUILADO</SelectItem>
+                    <SelectItem key="PRESTADO" value="PRESTADO">PRESTADO</SelectItem>
+                  </Select>
                 <Input
                   label="Área del Terreno (HA)"
                   type="number"

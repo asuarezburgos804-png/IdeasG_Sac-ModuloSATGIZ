@@ -929,6 +929,26 @@ class DeclaracionJuradaService {
     }
   }
 
+  // ========== MÉTODOS ESPECÍFICOS PARA TIPOS DE PREDIO Y DENOMINACIÓN ==========
+
+  async obtenerClasificacionesPredio() {
+    try {
+      return await fetchClasifPredio();
+    } catch (error) {
+      console.error("Error al obtener clasificaciones de predio:", error);
+      return [];
+    }
+  }
+
+  async obtenerTiposDenominacion() {
+    try {
+      return await fetchTipoDoc();
+    } catch (error) {
+      console.error("Error al obtener tipos de denominación:", error);
+      return [];
+    }
+  }
+
   // ========== MÉTODOS ADICIONALES ÚTILES ==========
 
   async verificarBackendDisponible() {
