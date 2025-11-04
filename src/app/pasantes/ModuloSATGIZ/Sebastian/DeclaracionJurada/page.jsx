@@ -38,6 +38,21 @@ export default function DeclaracionJurada() {
   const [tiposVia, setTiposVia] = useState([]);
   const [cargandoTiposVia, setCargandoTiposVia] = useState(false);
 
+<<<<<<< HEAD
+  // Estados para tipos de predio
+  const [tiposPredio, setTiposPredio] = useState([]);
+  const [cargandoTiposPredio, setCargandoTiposPredio] = useState(false);
+
+  // Estados para tipos de denominación
+  const [tiposDenominacion, setTiposDenominacion] = useState([]);
+  const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
+
+=======
+  // Estados para deducciones
+  const [opcionesAutorizacion, setOpcionesAutorizacion] = useState([]);
+  const [cargandoOpcionesAutorizacion, setCargandoOpcionesAutorizacion] = useState(false);
+>>>>>>> 44ce796 (Arreglo deduccion)
+
   // Estados para tipos de predio
   const [tiposPredio, setTiposPredio] = useState([]);
   const [cargandoTiposPredio, setCargandoTiposPredio] = useState(false);
@@ -363,7 +378,7 @@ export default function DeclaracionJurada() {
       try {
         const data = await DeclaracionJuradaService.DeduccionPorId(id);
         setFormData((prev) => ({ ...prev, ...data }));
-        setOpcionesAutorizacion(data.opcionesAutorizacion || ["Sí", "No"]);
+        setOpcionesAutorizacion(data.opcionesAutorizacion || ["SI", "NO"]);
       } catch (error) {
         console.error("Error al cargar deducción:", error);
       } finally {
@@ -825,18 +840,11 @@ export default function DeclaracionJurada() {
                   value={formData.codigo_via}
                   onChange={(e) => handleInputChange("codigo_via", e.target.value)}
                 />
-                <Select
+                <Input
                   label="Tipo de Vía"
-                  selectedKeys={formData.tipo_via ? [formData.tipo_via] : []}
+                  value={formData.tipo_via || ""}
                   onChange={(e) => handleInputChange("tipo_via", e.target.value)}
-                  isLoading={cargandoTiposVia}
-                >
-                  {tiposVia.map((tipoVia) => (
-                    <SelectItem key={tipoVia.id} value={tipoVia.id}>
-                      {tipoVia.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
+                />
                 <Input
                   label="Nombre de Vía"
                   value={formData.nombre_via}
