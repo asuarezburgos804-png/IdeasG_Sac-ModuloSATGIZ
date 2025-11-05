@@ -744,11 +744,14 @@ class DeclaracionJuradaService {
       // Llamada al servicio que obtiene la deducción
       const response = await DeduccionUrbanoDeclaracionJuradaService.obtenerPorId(id);
 
+      // Definimos las opciones para el select "¿Se autoriza?"
+      const opcionesAutorizacion = [
+        { id: "SI", nombre: "SI" },
+        { id: "NO", nombre: "NO" }
+      ];
+
       if (response && response.data) {
         const deduccion = response.data;
-
-        // Agregamos el campo de opciones para el select de "¿Se autoriza?"
-        const opcionesAutorizacion = ["Sí", "No"];
 
         return {
           ...deduccion,
@@ -757,7 +760,7 @@ class DeclaracionJuradaService {
       } else {
         console.warn("No se encontró información de deducción para el ID:", id);
         return {
-          opcionesAutorizacion: ["Sí", "No"], // devuelve igual las opciones
+          opcionesAutorizacion, // devuelve igual las opciones
         };
       }
     } catch (error) {

@@ -38,20 +38,12 @@ export default function DeclaracionJurada() {
   const [tiposVia, setTiposVia] = useState([]);
   const [cargandoTiposVia, setCargandoTiposVia] = useState(false);
 
-<<<<<<< HEAD
-  // Estados para tipos de predio
-  const [tiposPredio, setTiposPredio] = useState([]);
-  const [cargandoTiposPredio, setCargandoTiposPredio] = useState(false);
-
-  // Estados para tipos de denominación
-  const [tiposDenominacion, setTiposDenominacion] = useState([]);
-  const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
-
-=======
   // Estados para deducciones
-  const [opcionesAutorizacion, setOpcionesAutorizacion] = useState([]);
+  const [opcionesAutorizacion, setOpcionesAutorizacion] = useState([
+    { id: "SI", nombre: "SI" },
+    { id: "NO", nombre: "NO" }
+  ]);
   const [cargandoOpcionesAutorizacion, setCargandoOpcionesAutorizacion] = useState(false);
->>>>>>> 44ce796 (Arreglo deduccion)
 
   // Estados para tipos de predio
   const [tiposPredio, setTiposPredio] = useState([]);
@@ -60,7 +52,6 @@ export default function DeclaracionJurada() {
   // Estados para tipos de denominación
   const [tiposDenominacion, setTiposDenominacion] = useState([]);
   const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
-
 
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
@@ -377,15 +368,33 @@ export default function DeclaracionJurada() {
       setCargandoOpcionesAutorizacion(true);
       try {
         const data = await DeclaracionJuradaService.DeduccionPorId(id);
-        setFormData((prev) => ({ ...prev, ...data }));
-        setOpcionesAutorizacion(data.opcionesAutorizacion || ["SI", "NO"]);
+
+        // Ajusta el valor del backend si no devuelve "SI"/"NO"
+        setFormData((prev) => ({
+          ...prev,
+          ...data,
+          autoriza_deduccion:
+            data.autoriza_deduccion === true
+              ? "SI"
+              : data.autoriza_deduccion === false
+              ? "NO"
+              : data.autoriza_deduccion || "",
+        }));
+
+        // Opciones fijas
+        setOpcionesAutorizacion([
+          { id: "SI", nombre: "SI" },
+          { id: "NO", nombre: "NO" },
+        ]);
       } catch (error) {
         console.error("Error al cargar deducción:", error);
       } finally {
         setCargandoOpcionesAutorizacion(false);
       }
     }
-  });
+
+    cargarDeduccion();
+  }, []);
 
   // Manejar selección de contribuyente - Transición a FASE 2
   const handleSeleccionarContribuyente = async (contribuyente) => {
@@ -899,15 +908,14 @@ export default function DeclaracionJurada() {
                     <label className="flex items-center space-x-2">
                       <Input
                         label="La deducción sería"
-                        value={formData.deduccion}
-                        onChange={(e) => handleInputChange("deduccion", e.target.value)}
+                        value={formData.deduccion || "50% de la base imponible"}
+                        isDisabled={!formData.deduccion}
                       />
                       <Select
                         label="¿Se autoriza?"
                         selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
                         onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
                         isLoading={cargandoOpcionesAutorizacion}
-                        isDisabled={!formData.deduccion}
                       >
                         {opcionesAutorizacion.map((opcionesAutorizacion) => (
                           <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
@@ -1105,15 +1113,14 @@ export default function DeclaracionJurada() {
                     <label className="flex items-center space-x-2">
                       <Input
                         label="La deducción sería"
-                        value={formData.deduccion}
-                        onChange={(e) => handleInputChange("deduccion", e.target.value)}
+                        value={formData.deduccion || "50% de la base imponible"}
+                        isDisabled={!formData.deduccion}
                       />
                       <Select
                         label="¿Se autoriza?"
                         selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
                         onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
                         isLoading={cargandoOpcionesAutorizacion}
-                        isDisabled={!formData.deduccion}
                       >
                         {opcionesAutorizacion.map((opcionesAutorizacion) => (
                           <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
