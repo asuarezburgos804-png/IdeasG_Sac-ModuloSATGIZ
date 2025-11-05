@@ -8,31 +8,10 @@ import {
 import {
   fetchTipoVias,
   fetchTipoDoc,
-  getDepartamentos,
-  getProvincias,
-  getDistritos,
-  fetchMep,
-  fetchEcs,
-  fetchEcc,
-  fetchUca,
   fetchCodUsoPredio,
-  fetchClasifUso,
-  fetchFormaAdquiPredio,
-  fetchConstruccionInst,
-  fetchMaterialPredominante,
-  fetchEstConservacion,
-  fetchEstConstruccion,
   fetchTipoEvalPredio,
-  fetchTipoTitular,
-  fetchCondTitular,
-  fetchCondDeclarante,
-  fetchEstCivil,
-  fetchTipoPerJuridica,
-  fetchCondEspTitular,
-  fetchFormaAdqui,
   fetchCondEspPredio,
   fetchClasifPredio,
-  fetchPredioCatEn
 } from "@/app/services/master/master";
 
 // Importar servicios de contribuyente de SATGIZ
@@ -42,13 +21,11 @@ import { UbicacionContribuyenteService } from "@/app/services/SATGIZ/ubicacionCo
 // Importar servicios de declaración jurada de SATGIZ
 import { DeclaracionJuradaService as SATGIZDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Declaracion_Jurada_Services";
 import { DatosUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Datos_Urbano_Declaracion_Jurada_Services";
-import { DatosComplementariosUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Datos_Complementarios_Urbano_Declaracion_Jurada_Services";
-import { DeduccionUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Deduccion_Urbano_Declaracion_Jurada_Services";
-import { UbicacionUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Ubicacion_Urbano_Declaracion_Jurada_Services";
+import DeduccionService from "./DeduccionService";
 
 class DeclaracionJuradaService {
   constructor() {
-    //  DATOS TEMPORALES PARA CONTRIBUYENTES (mientras desarrollas backend)
+    //  DATOS TEMPORALES PARA CONTRIBUYENTES 
     this.contribuyentesTemp = [
       {
         c_codigo: "DJ-001-2024",
@@ -327,158 +304,33 @@ class DeclaracionJuradaService {
   }
 //-----------------------------------------------------------------------------------------------------------
 //------------------------------REVISAR----------------------------------------------------------------------
-  async obtenerDeclaracionPorId(id) {
-    try {
-      // INTENTAR API PRIMERO
-      const data = await makeGetRequest(`/declaraciones-juradas/${id}`);
-      const declaracion = data.data || null;
-      
-      if (declaracion) {
-        return {
-          id: declaracion.id || declaracion.codigo,
-          contribuyente_documento: declaracion.contribuyente_documento || "",
-          periodo: declaracion.periodo || new Date().getFullYear().toString(),
-          estado: declaracion.estado || "PENDIENTE",
-          fecha_presentacion: declaracion.fecha_presentacion || new Date().toISOString().split('T')[0],
-          monto_declarado: declaracion.monto_declarado || 0,
-          codigo: declaracion.codigo || `DJ-${declaracion.contribuyente_id || ""}-${declaracion.periodo || new Date().getFullYear()}`,
-          tipo_predio: declaracion.tipo_predio || "URBANO",
-          ubicacion: declaracion.ubicacion || "Sin ubicación",
-          deduccion: declaracion.deduccion || "NO",
-          area_terreno: declaracion.area_terreno || "0 m²"
-        };
-      } else {
-        // FALLBACK A DATOS TEMPORALES
-        console.warn("Usando declaración temporal - Backend no disponible");
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return this.declaracionesTemp.find(dj => dj.id === id) || null;
-      }
-    } catch (error) {
-      //  FALLBACK A DATOS TEMPORALES
-      console.warn("Error al obtener declaración, usando datos temporales:", error);
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return this.declaracionesTemp.find(dj => dj.id === id) || null;
-    }
-  }
-//-----------------------------------------------------------------------------------------------------------
 
-  async crearDeclaracionJurada(datosDeclaracion) {
-    try {
-      //  INTENTAR GUARDAR EN API
-      const datosParaAPI = {
-        ...datosDeclaracion,
-        fecha_creacion: new Date().toISOString(),
-        estado: "PENDIENTE"
-      };
-      
-      const response = await makePostRequest("/declaraciones-juradas", datosParaAPI);
-      
-      return {
-        success: true,
-        message: "Declaración Jurada creada correctamente",
-        data: response.data
-      };
-    } catch (error) {
-      //  FALLBACK: GUARDAR EN MEMORIA TEMPORAL
-      console.warn("Error al crear en backend, guardando temporalmente:", error);
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const nuevaId = Math.max(0, ...this.declaracionesTemp.map(d => d.id)) + 1;
-      const nuevaDeclaracion = {
-        id: nuevaId,
-        ...datosDeclaracion,
-        fecha_creacion: new Date().toISOString(),
-        estado: "PENDIENTE"
-      };
-
-      this.declaracionesTemp.push(nuevaDeclaracion);
-      
-      return {
-        success: true,
-        message: "Declaración Jurada creada temporalmente (Backend no disponible)",
-        data: nuevaDeclaracion,
-        temporal: true
-      };
-    }
-  }
-
-  async actualizarDeclaracionJurada(id, datosActualizados) {
-    try {
-      //  INTENTAR ACTUALIZAR EN API
-      const response = await makePutRequest(`/declaraciones-juradas/${id}`, {
-        ...datosActualizados,
-        fecha_actualizacion: new Date().toISOString()
-      });
-      
-      return {
-        success: true,
-        message: "Declaración Jurada actualizada correctamente",
-        data: response.data
-      };
-    } catch (error) {
-      //  FALLBACK: ACTUALIZAR EN MEMORIA TEMPORAL
-      console.warn("Error al actualizar en backend, actualizando temporalmente:", error);
-      
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const index = this.declaracionesTemp.findIndex(dj => dj.id === id);
-      if (index === -1) {
-        throw new Error("Declaración Jurada no encontrada");
-      }
-
-      this.declaracionesTemp[index] = {
-        ...this.declaracionesTemp[index],
-        ...datosActualizados,
-        fecha_actualizacion: new Date().toISOString()
-      };
-
-      return {
-        success: true,
-        message: "Declaración Jurada actualizada temporalmente (Backend no disponible)",
-        data: this.declaracionesTemp[index],
-        temporal: true
-      };
-    }
-  }
-
-  async eliminarDeclaracionJurada(id) {
-    try {
-      //  INTENTAR ELIMINAR EN API
-      await makeDeleteRequest(`/declaraciones-juradas/${id}`);
-      return {
-        success: true,
-        message: "Declaración Jurada eliminada correctamente"
-      };
-    } catch (error) {
-      // FALLBACK: ELIMINAR DE MEMORIA TEMPORAL
-      console.warn("Error al eliminar en backend, eliminando temporalmente:", error);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const index = this.declaracionesTemp.findIndex(dj => dj.id === id);
-      if (index === -1) {
-        throw new Error("Declaración Jurada no encontrada");
-      }
-
-      this.declaracionesTemp.splice(index, 1);
-
-      return {
-        success: true,
-        message: "Declaración Jurada eliminada temporalmente (Backend no disponible)",
-        temporal: true
-      };
-    }
-  }
 
   // ========== MÉTODOS PARA MAESTROS (SIEMPRE APIs REALES) ==========
 
   async obtenerTiposVia() {
     try {
-      return await fetchTipoVias();
+      // Agregar timeout para evitar que se quede cargando indefinidamente
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout después de 3 segundos')), 3000)
+      );
+      const tiposViaPromise = fetchTipoVias();
+      return await Promise.race([tiposViaPromise, timeoutPromise]);
     } catch (error) {
-      console.error("Error al obtener tipos de vía:", error);
-      return [];
+      console.warn("Error al obtener tipos de vía, usando datos temporales:", error);
+      // No esperar más, devolver datos temporales inmediatamente
+      return [
+        { id: "01", nombre: "AVENIDA" },
+        { id: "02", nombre: "CALLE" },
+        { id: "03", nombre: "JIRÓN" },
+        { id: "04", nombre: "PASAJE" },
+        { id: "05", nombre: "PLAZA" },
+        { id: "06", nombre: "ALAMEDA" },
+        { id: "07", nombre: "BULEVAR" },
+        { id: "08", nombre: "CARRETERA" },
+        { id: "09", nombre: "PROLONGACIÓN" },
+        { id: "10", nombre: "URBANIZACIÓN" }
+      ];
     }
   }
 
@@ -574,101 +426,11 @@ class DeclaracionJuradaService {
     }
   }
 
-  async obtenerMaterialesEstructurales() {
-    try {
-      return await fetchMep();
-    } catch (error) {
-      console.error("Error al obtener materiales estructurales:", error);
-      return [];
-    }
-  }
-
-  async obtenerEstadosConservacionEstructura() {
-    try {
-      return await fetchEcs();
-    } catch (error) {
-      console.error("Error al obtener estados de conservación de estructura:", error);
-      return [];
-    }
-  }
-
-  async obtenerEstadosConservacionAcabados() {
-    try {
-      return await fetchEcc();
-    } catch (error) {
-      console.error("Error al obtener estados de conservación de acabados:", error);
-      return [];
-    }
-  }
-
-  async obtenerUnidadesMedidaConstruccion() {
-    try {
-      return await fetchUca();
-    } catch (error) {
-      console.error("Error al obtener unidades de medida de construcción:", error);
-      return [];
-    }
-  }
-
   async obtenerUsosPredio() {
     try {
       return await fetchCodUsoPredio();
     } catch (error) {
       console.error("Error al obtener usos de predio:", error);
-      return [];
-    }
-  }
-
-  async obtenerClasificacionesUso() {
-    try {
-      return await fetchClasifUso();
-    } catch (error) {
-      console.error("Error al obtener clasificaciones de uso:", error);
-      return [];
-    }
-  }
-
-  async obtenerFormasAdquisicion() {
-    try {
-      return await fetchFormaAdquiPredio();
-    } catch (error) {
-      console.error("Error al obtener formas de adquisición:", error);
-      return [];
-    }
-  }
-
-  async obtenerTiposConstruccionInstalacion() {
-    try {
-      return await fetchConstruccionInst();
-    } catch (error) {
-      console.error("Error al obtener tipos de construcción e instalación:", error);
-      return [];
-    }
-  }
-
-  async obtenerMaterialesPredominantesRural() {
-    try {
-      return await fetchMaterialPredominante();
-    } catch (error) {
-      console.error("Error al obtener materiales predominantes rural:", error);
-      return [];
-    }
-  }
-
-  async obtenerEstadosConservacionRural() {
-    try {
-      return await fetchEstConservacion();
-    } catch (error) {
-      console.error("Error al obtener estados de conservación rural:", error);
-      return [];
-    }
-  }
-
-  async obtenerEstadosConstruccionRural() {
-    try {
-      return await fetchEstConstruccion();
-    } catch (error) {
-      console.error("Error al obtener estados de construcción rural:", error);
       return [];
     }
   }
@@ -717,54 +479,26 @@ class DeclaracionJuradaService {
 
   // ========== MÉTODOS PARA DEDUCCIONES ==========
 
-  async obtenerTiposDeduccion() {
+  async obtenerDeduccionPorId(id) {
     try {
-      const data = await makeGetRequest("/maestros/tipos-deduccion");
-      return data.data || [
-        { value: "NO", label: "NO" },
-        { value: "20% Zona de Conservación", label: "20% Zona de Conservación y Reexención - ASES NO" },
-        { value: "10% Zona Histórica", label: "10% Zona Histórica" },
-        { value: "15% Zona Residencial", label: "15% Zona Residencial Especial" },
-        { value: "25% Zona Rural", label: "25% Zona Rural Protegida" }
-      ];
-    } catch (error) {
-      console.error("Error al obtener tipos de deducción:", error);
-      return [
-        { value: "NO", label: "NO" },
-        { value: "20% Zona de Conservación", label: "20% Zona de Conservación y Reexención - ASES NO" },
-        { value: "10% Zona Histórica", label: "10% Zona Histórica" },
-        { value: "15% Zona Residencial", label: "15% Zona Residencial Especial" },
-        { value: "25% Zona Rural", label: "25% Zona Rural Protegida" }
-      ];
-    }
-  }
-
-  async DeduccionPorId(id) {
-    try {
-      // Llamada al servicio que obtiene la deducción
-      const response = await DeduccionUrbanoDeclaracionJuradaService.obtenerPorId(id);
-
-      if (response && response.data) {
-        const deduccion = response.data;
-
-        // Agregamos el campo de opciones para el select de "¿Se autoriza?"
-        const opcionesAutorizacion = ["Sí", "No"];
-
-        return {
-          ...deduccion,
-          opcionesAutorizacion, // ← esto lo usas en tu Select del front
-        };
-      } else {
-        console.warn("No se encontró información de deducción para el ID:", id);
-        return {
-          opcionesAutorizacion: ["Sí", "No"], // devuelve igual las opciones
-        };
-      }
+      // Usar el nuevo servicio de deducción de Sebastian
+      const deduccion = await DeduccionService.obtenerPorId(id);
+      return deduccion;
     } catch (error) {
       console.error("Error al obtener deducción por ID:", error);
       throw error;
     }
-  }                          
+  }
+
+  async obtenerTiposDeduccion() {
+    try {
+      // Usar el nuevo servicio de deducción de Sebastian
+      return await DeduccionService.obtenerTiposDeduccion();
+    } catch (error) {
+      console.error("Error al obtener tipos de deducción:", error);
+      throw error;
+    }
+  }
 
   // ========== MÉTODOS PARA ESTADÍSTICAS ==========
 
@@ -792,68 +526,10 @@ class DeclaracionJuradaService {
 
   // ========== MÉTODOS PARA GENERAR PDF ==========
 
-  async generarPDFDeclaracion(idDeclaracion) {
-    try {
-      const response = await makeGetRequest(`/declaraciones-juradas/${idDeclaracion}/pdf`);
-      return {
-        success: true,
-        message: "PDF generado correctamente",
-        url: response.data.url,
-        data: response.data
-      };
-    } catch (error) {
-      console.error("Error al generar PDF:", error);
-      
-      //  FALLBACK: SIMULAR GENERACIÓN DE PDF
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const declaracion = this.declaracionesTemp.find(dj => dj.id === idDeclaracion);
-      if (!declaracion) {
-        throw new Error("Declaración no encontrada");
-      }
-
-      return {
-        success: true,
-        message: "PDF generado temporalmente (Backend no disponible)",
-        url: `/pdf/declaracion-${idDeclaracion}.pdf`,
-        data: declaracion,
-        temporal: true
-      };
-    }
-  }
 
   // ========== MÉTODOS PARA VALIDACIONES ==========
 
-  async validarDeclaracionJurada(datosDeclaracion) {
-    try {
-      const response = await makePostRequest("/declaraciones-juradas/validar", datosDeclaracion);
-      return response.data;
-    } catch (error) {
-      console.error("Error al validar declaración:", error);
-      
-      //  FALLBACK: VALIDACIÓN BÁSICA LOCAL
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const errores = [];
-      
-      if (!datosDeclaracion.tipo_predio) {
-        errores.push("El tipo de predio es obligatorio");
-      }
-      
-      if (!datosDeclaracion.area_terreno || datosDeclaracion.area_terreno <= 0) {
-        errores.push("El área del terreno es obligatoria y debe ser mayor a 0");
-      }
-      
-      if (!datosDeclaracion.contribuyente_documento) {
-        errores.push("El documento del contribuyente es obligatorio");
-      }
-
-      return {
-        valido: errores.length === 0,
-        errores: errores
-      };
-    }
-  }
+  //validarDeclaracionJurada//
 
   // ========== MÉTODOS ADICIONALES PARA MAESTROS ESPECIALIZADOS ==========
 
@@ -862,69 +538,6 @@ class DeclaracionJuradaService {
       return await fetchTipoEvalPredio();
     } catch (error) {
       console.error("Error al obtener tipos de evaluación de predio:", error);
-      return [];
-    }
-  }
-
-  async obtenerTiposTitular() {
-    try {
-      return await fetchTipoTitular();
-    } catch (error) {
-      console.error("Error al obtener tipos de titular:", error);
-      return [];
-    }
-  }
-
-  async obtenerCondicionesTitular() {
-    try {
-      return await fetchCondTitular();
-    } catch (error) {
-      console.error("Error al obtener condiciones de titular:", error);
-      return [];
-    }
-  }
-
-  async obtenerCondicionesDeclarante() {
-    try {
-      return await fetchCondDeclarante();
-    } catch (error) {
-      console.error("Error al obtener condiciones de declarante:", error);
-      return [];
-    }
-  }
-
-  async obtenerEstadosCivil() {
-    try {
-      return await fetchEstCivil();
-    } catch (error) {
-      console.error("Error al obtener estados civil:", error);
-      return [];
-    }
-  }
-
-  async obtenerTiposPersonaJuridica() {
-    try {
-      return await fetchTipoPerJuridica();
-    } catch (error) {
-      console.error("Error al obtener tipos de persona jurídica:", error);
-      return [];
-    }
-  }
-
-  async obtenerCondicionesEspecialesTitular() {
-    try {
-      return await fetchCondEspTitular();
-    } catch (error) {
-      console.error("Error al obtener condiciones especiales de titular:", error);
-      return [];
-    }
-  }
-
-  async obtenerFormasAdquisicionCompletas() {
-    try {
-      return await fetchFormaAdqui();
-    } catch (error) {
-      console.error("Error al obtener formas de adquisición completas:", error);
       return [];
     }
   }
@@ -938,41 +551,52 @@ class DeclaracionJuradaService {
     }
   }
 
-  async obtenerClasificacionesPredio() {
-    try {
-      return await fetchClasifPredio();
-    } catch (error) {
-      console.error("Error al obtener clasificaciones de predio:", error);
-      return [];
-    }
-  }
-
-  async obtenerPrediosCatastralesEn() {
-    try {
-      return await fetchPredioCatEn();
-    } catch (error) {
-      console.error("Error al obtener predios catastrales en:", error);
-      return [];
-    }
-  }
 
   // ========== MÉTODOS ESPECÍFICOS PARA TIPOS DE PREDIO Y DENOMINACIÓN ==========
 
   async obtenerClasificacionesPredio() {
     try {
-      return await fetchClasifPredio();
+      // Agregar timeout para evitar que se quede cargando indefinidamente
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout después de 3 segundos')), 3000)
+      );
+      const clasificacionesPromise = fetchClasifPredio();
+      return await Promise.race([clasificacionesPromise, timeoutPromise]);
     } catch (error) {
-      console.error("Error al obtener clasificaciones de predio:", error);
-      return [];
+      console.warn("Error al obtener clasificaciones de predio, usando datos temporales:", error);
+      // No esperar más, devolver datos temporales inmediatamente
+      return [
+        { id: "01", nombre: "COMENZANDO" },
+        { id: "02", nombre: "INTERMEDIO" },
+        { id: "03", nombre: "AVANZADO" },
+        { id: "04", nombre: "TERMINADO" },
+      ];
     }
   }
 
   async obtenerTiposDenominacion() {
     try {
-      return await fetchTipoDoc();
+      // Agregar timeout para evitar que se quede cargando indefinidamente
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout después de 3 segundos')), 3000)
+      );
+      const tiposDenominacionPromise = fetchTipoDoc();
+      return await Promise.race([tiposDenominacionPromise, timeoutPromise]);
     } catch (error) {
-      console.error("Error al obtener tipos de denominación:", error);
-      return [];
+      console.warn("Error al obtener tipos de denominación, usando datos temporales:", error);
+      // No esperar más, devolver datos temporales inmediatamente
+      return [
+        { id: "01", nombre: "EDIFICIO" },
+        { id: "02", nombre: "CONDOMINIO" },
+        { id: "03", nombre: "TORRE" },
+        { id: "04", nombre: "CENTRO COMERCIAL" },
+        { id: "05", nombre: "GALERÍA" },
+        { id: "06", nombre: "RESIDENCIAL" },
+        { id: "07", nombre: "OFICINAS" },
+        { id: "08", nombre: "LOCAL COMERCIAL" },
+        { id: "09", nombre: "DEPARTAMENTO" },
+        { id: "10", nombre: "CASA" }
+      ];
     }
   }
 
