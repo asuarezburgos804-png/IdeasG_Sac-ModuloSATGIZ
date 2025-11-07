@@ -49,6 +49,9 @@ export default function DeclaracionJurada() {
   const [tiposDenominacion, setTiposDenominacion] = useState([]);
   const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
 
+  // Estado para errores de validación  
+  const [errores, setErrores] = useState({});
+
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
     // Datos básicos
@@ -128,6 +131,59 @@ export default function DeclaracionJurada() {
     // Otras instalaciones
     otras_instalaciones: [],
   });
+
+  // FUNCIÓN DE VALIDACIÓN
+const validarFormulario = () => {
+  const errores = {};
+
+  // Validar datos básicos
+  if (!formData.periodo || formData.periodo.trim() === '') {
+    errores.periodo = "El período es requerido";
+  } else if (formData.periodo.length !== 4 || isNaN(formData.periodo)) {
+    errores.periodo = "El período debe ser un año válido (4 dígitos)";
+  }
+
+  // Validar predio urbano
+  if (formData.tipo_predio === "URBANO") {
+    if (!formData.departamento) {
+      errores.departamento = "El departamento es requerido";
+    }
+    if (!formData.provincia) {
+      errores.provincia = "La provincia es requerida";
+    }
+    if (!formData.distrito) {
+      errores.distrito = "El distrito es requerido";
+    }
+    if (!formData.tipo_via || formData.tipo_via.trim() === '') {
+      errores.tipo_via = "El tipo de vía es requerido";
+    }
+    if (!formData.nombre_via || formData.nombre_via.trim() === '') {
+      errores.nombre_via = "El nombre de vía es requerido";
+    }
+    if (!formData.area_total_terreno || formData.area_total_terreno <= 0) {
+      errores.area_total_terreno = "El área total debe ser mayor a 0";
+    }
+  }
+
+  // Validar predio rural
+  if (formData.tipo_predio === "RURAL") {
+    if (!formData.departamento_rural) {
+      errores.departamento_rural = "El departamento es requerido";
+    }
+    if (!formData.zona_predio_rural || formData.zona_predio_rural.trim() === '') {
+      errores.zona_predio_rural = "La zona del predio es requerida";
+    }
+    if (!formData.area_terreno_rural || formData.area_terreno_rural <= 0) {
+      errores.area_terreno_rural = "El área del terreno debe ser mayor a 0";
+    }
+  }
+
+  return {
+    isValid: Object.keys(errores).length === 0,
+    errores
+  };
+};
+
 
   const [nuevaInstalacion, setNuevaInstalacion] = useState({
     codigo: "",
@@ -520,6 +576,17 @@ export default function DeclaracionJurada() {
     try {
       console.log("📝 Iniciando guardado de declaración jurada...");
 
+      // PRIMERO VALIDAR EL FORMULARIO
+      const validacion = validarFormulario();
+      if (!validacion.isValid) {
+      setErrores(validacion.errores);
+      alert("❌ Por favor, corrige los errores en el formulario antes de guardar.");
+      return;
+    }
+
+    // Limpiar errores si la validación pasa
+    setErrores({});
+
       // Validar datos mínimos
       if (!contribuyenteSeleccionado?.id) {
         alert("❌ Error: No hay contribuyente seleccionado");
@@ -829,7 +896,7 @@ export default function DeclaracionJurada() {
 
   // Renderizar FASE 3: Formulario de nueva declaración jurada
   const renderFaseNuevaDeclaracion = () => {
-    // ✅ Validación EXTRA de seguridad
+    //  Validación EXTRA de seguridad
     /*if (!contribuyenteSeleccionado || !contribuyenteSeleccionado.id) {
       return (
         <div className="p-8 text-center">
@@ -917,6 +984,8 @@ export default function DeclaracionJurada() {
                     selectedKeys={formData.departamento ? [formData.departamento] : []}
                     onChange={(e) => handleDepartamentoChange(e.target.value)}
                     isLoading={cargandoUbicaciones}
+                    isInvalid={!!errores.departamento}
+                    errorMessage={errores.departamento}
                   >
                     {departamentos.map((departamento) => (
                       <SelectItem key={departamento.id} value={departamento.id}>
@@ -930,6 +999,8 @@ export default function DeclaracionJurada() {
                     onChange={(e) => handleProvinciaChange(e.target.value)}
                     isLoading={cargandoUbicaciones}
                     isDisabled={!formData.departamento}
+                    isInvalid={!!errores.provincia}
+                    errorMessage={errores.provincia}
                   >
                     {provincias.map((provincia) => (
                       <SelectItem key={provincia.id} value={provincia.id}>
@@ -943,6 +1014,8 @@ export default function DeclaracionJurada() {
                     onChange={(e) => handleInputChange("distrito", e.target.value)}
                     isLoading={cargandoUbicaciones}
                     isDisabled={!formData.provincia}
+                    isInvalid={!!errores.distrito}
+                    errorMessage={errores.distrito}
                   >
                     {distritos.map((distrito) => (
                       <SelectItem key={distrito.id} value={distrito.id}>
@@ -955,29 +1028,21 @@ export default function DeclaracionJurada() {
                     value={formData.codigo_via}
                     onChange={(e) => handleInputChange("codigo_via", e.target.value)}
                   />
-                  <Select
+                  <Input
                     label="Tipo de Vía"
-                    selectedKeys={formData.tipo_via ? [formData.tipo_via] : []}
+                    value={formData.tipo_via}
                     onChange={(e) => handleInputChange("tipo_via", e.target.value)}
-                    isLoading={cargandoTiposVia}
-                  >
-                    {tiposVia && tiposVia.length > 0 ? (
-                      tiposVia.map((tipoVia) => (
-                        <SelectItem key={tipoVia.id} value={tipoVia.id}>
-                          {tipoVia.nombre}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem key="cargando" value="cargando" isDisabled>
-                        Cargando tipos de vía...
-                      </SelectItem>
-                    )}
-                  </Select>
+                    placeholder="Ej: AVENIDA, CALLE, JIRÓN, etc."
+                    isInvalid={!!errores.tipo_via}
+                    errorMessage={errores.tipo_via}
+                  />
                   <Input
                     label="Nombre de Vía"
                     value={formData.nombre_via}
                     onChange={(e) => handleInputChange("nombre_via", e.target.value)}
-                    placeholder={formData.tipo_via ? `Ej: ${tiposVia.find(tipo => tipo.id === formData.tipo_via)?.nombre} Principal` : "Ingrese el nombre de la vía"}
+                    placeholder="Ingrese el nombre de la vía"
+                    isInvalid={!!errores.nombre_via}
+                    errorMessage={errores.nombre_via}
                   />
                   <Input
                     label="Arancel"
