@@ -82,7 +82,7 @@ export class DeduccionUrbanoDeclaracionJuradaService {
    * @param {Object} deduccionData - Datos de la deducción urbana
    * @returns {Promise<Object>} Deducción urbana creada
    */
-  static async crear(deduccionData) {
+  static async crearDeduccion(deduccionData) {
     try {
       const response = await fetch(`${API_BASE_URL}/example/deduccion_urbano_declaracion_jurada`, {
         method: 'POST',
@@ -109,7 +109,7 @@ export class DeduccionUrbanoDeclaracionJuradaService {
    * @param {Object} deduccionData - Datos actualizados de la deducción urbana
    * @returns {Promise<Object>} Deducción urbana actualizada
    */
-  static async actualizar(id, deduccionData) {
+  static async actualizarDeduccion(id, deduccionData) {
     try {
       const response = await fetch(`${API_BASE_URL}/example/deduccion_urbano_declaracion_jurada/${id}`, {
         method: 'PUT',
@@ -135,7 +135,7 @@ export class DeduccionUrbanoDeclaracionJuradaService {
    * @param {number} id - ID de la deducción urbana a eliminar
    * @returns {Promise<Object>} Resultado de la eliminación
    */
-  static async eliminar(id) {
+  static async eliminarDeduccion(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/example/deduccion_urbano_declaracion_jurada/${id}`, {
         method: 'DELETE',

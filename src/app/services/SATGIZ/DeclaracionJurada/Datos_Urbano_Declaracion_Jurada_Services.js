@@ -65,7 +65,7 @@ export class DatosUrbanoDeclaracionJuradaService {
    * @param {Object} datoUrbanoData - Datos del registro urbano
    * @returns {Promise<Object>} Dato urbano creado
    */
-  static async crear(datoUrbanoData) {
+  static async crearDatoUrbano(datoUrbanoData) {
     try {
       const response = await fetch(`${API_BASE_URL}/example/datos_urbano_declaracion_jurada`, {
         method: 'POST',
@@ -92,7 +92,7 @@ export class DatosUrbanoDeclaracionJuradaService {
    * @param {Object} datoUrbanoData - Datos actualizados del registro urbano
    * @returns {Promise<Object>} Dato urbano actualizado
    */
-  static async actualizar(id, datoUrbanoData) {
+  static async actualizarDatoUrbano(id, datoUrbanoData) {
     try {
       const response = await fetch(`${API_BASE_URL}/example/datos_urbano_declaracion_jurada/${id}`, {
         method: 'PUT',
@@ -118,7 +118,7 @@ export class DatosUrbanoDeclaracionJuradaService {
    * @param {number} id - ID del dato urbano a eliminar
    * @returns {Promise<Object>} Resultado de la eliminación
    */
-  static async eliminar(id) {
+  static async eliminarDatoUrbano(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/example/datos_urbano_declaracion_jurada/${id}`, {
         method: 'DELETE',

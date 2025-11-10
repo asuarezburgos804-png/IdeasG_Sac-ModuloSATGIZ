@@ -575,30 +575,27 @@ class DeclaracionJuradaService {
   }
 
   async obtenerTiposDenominacion() {
-    try {
-      // Agregar timeout para evitar que se quede cargando indefinidamente
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout después de 3 segundos')), 3000)
-      );
-      const tiposDenominacionPromise = fetchTipoDoc();
-      return await Promise.race([tiposDenominacionPromise, timeoutPromise]);
-    } catch (error) {
-      console.warn("Error al obtener tipos de denominación, usando datos temporales:", error);
-      // No esperar más, devolver datos temporales inmediatamente
-      return [
-        { id: "01", nombre: "EDIFICIO" },
-        { id: "02", nombre: "CONDOMINIO" },
-        { id: "03", nombre: "TORRE" },
-        { id: "04", nombre: "CENTRO COMERCIAL" },
-        { id: "05", nombre: "GALERÍA" },
-        { id: "06", nombre: "RESIDENCIAL" },
-        { id: "07", nombre: "OFICINAS" },
-        { id: "08", nombre: "LOCAL COMERCIAL" },
-        { id: "09", nombre: "DEPARTAMENTO" },
-        { id: "10", nombre: "CASA" }
-      ];
-    }
-  }
+  // ✅ USAR SOLO DATOS TEMPORALES - SIN LLAMADAS A API
+  console.log("📋 Cargando tipos de denominación desde datos temporales");
+  
+  return [
+    { id: "01", nombre: "EDIFICIO" },
+    { id: "02", nombre: "CONDOMINIO" },
+    { id: "03", nombre: "TORRE" },
+    { id: "04", nombre: "CENTRO COMERCIAL" },
+    { id: "05", nombre: "GALERÍA" },
+    { id: "06", nombre: "RESIDENCIAL" },
+    { id: "07", nombre: "OFICINAS" },
+    { id: "08", nombre: "LOCAL COMERCIAL" },
+    { id: "09", nombre: "DEPARTAMENTO" },
+    { id: "10", nombre: "CASA" },
+    { id: "11", nombre: "BUNGALOW" },
+    { id: "12", nombre: "DÚPLEX" },
+    { id: "13", nombre: "TRÍPLEX" },
+    { id: "14", nombre: "PENTHOUSE" },
+    { id: "15", nombre: "LOFT" }
+  ];
+}
 
   // ========== MÉTODOS ADICIONALES ÚTILES ==========
 
