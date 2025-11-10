@@ -571,8 +571,116 @@ const validarFormulario = () => {
     }));
   };
 
-  // Guardar declaración jurada usando servicios SATGIZ directamente
+    // Guardar declaración jurada usando servicios SATGIZ directamente
   const guardarDeclaracion = async () => {
+    try {
+      setGuardando(true); // 🔒 Bloquear el botón
+      console.log("📝 Iniciando guardado de declaración jurada...");
+
+      // 1️⃣ VALIDAR FORMULARIO
+      const validacion = validarFormulario();
+      if (!validacion.isValid) {
+        setErrores(validacion.errores || {});
+        alert("❌ Corrige los errores en el formulario antes de guardar.");
+        return;
+      }
+
+      setErrores({}); // limpiar errores previos
+
+      // 2️⃣ VALIDAR CONTRIBUYENTE
+      if (!contribuyenteSeleccionado || !contribuyenteSeleccionado.id) {
+        alert("❌ No hay contribuyente seleccionado.");
+        return;
+      }
+
+      // 3️⃣ DATOS PRINCIPALES
+      const datosDeclaracionPrincipal = {
+        c_anio_liquidacion: formData.periodo?.toString() || new Date().getFullYear().toString(),
+        c_num_id: contribuyenteSeleccionado.id.toString(),
+        c_contribuyente_principal: contribuyenteSeleccionado.nombre || "N/A",
+        c_tipo_predio: formData.tipo_predio || "URBANO",
+        c_estado: "PENDIENTE"
+      };
+            console.log("📦 Datos declaración principal:", datosDeclaracionPrincipal);
+
+      const validacionPrincipal = SATGIZDeclaracionJuradaService.validarDeclaracionJurada(datosDeclaracionPrincipal);
+      if (!validacionPrincipal.isValid) {
+        console.error("❌ Errores de validación:", validacionPrincipal.errors);
+        alert("❌ Error de validación en la declaración principal.");
+        return;
+      }
+
+      // 4️⃣ CREAR DECLARACIÓN PRINCIPAL
+      const declaracionPrincipal = await SATGIZDeclaracionJuradaService.crearNuevaDeclaracion(datosDeclaracionPrincipal);
+      console.log("✅ Declaración principal creada:", declaracionPrincipal);
+
+      // 5️⃣ DATOS URBANOS (si aplica)
+      if (formData.tipo_predio === "URBANO") {
+        const datosUrbanosPayload = {
+          c_uso_predio_urbano: formData.uso_predio_urbano || "",
+          c_estado_predio: formData.estado_predio || "",
+          c_tipo_predio: formData.clasificacion_predio || "",
+          c_condicion_predio: formData.condicion_predio || "",
+          n_area_total_terreno: parseFloat(formData.area_total_terreno || 0)
+        };
+
+        console.log("🏙️ Datos urbanos:", datosUrbanosPayload);
+
+      const validacionUrbana = DatosUrbanoDeclaracionJuradaService.validarDatoUrbano(datosUrbanosPayload);
+        if (validacionUrbana.isValid) {
+          await DatosUrbanoDeclaracionJuradaService.crearDatoUrbano(datosUrbanosPayload);
+          console.log("✅ Datos urbanos creados correctamente");
+        } else {
+        console.warn("⚠️ Datos urbanos no válidos:", validacionUrbana.errors);
+        }
+      } 
+
+      // 6️⃣ DEDUCCIÓN (si aplica)
+      if (formData.deduccion && formData.deduccion !== "NO") {
+        const deduccionPayload = {
+          c_descripcion_deduccion: formData.deduccion,
+          c_autorizado: formData.autoriza_deduccion === "SI"
+        };
+
+        console.log("💰 Datos deducción:", deduccionPayload);
+
+        const validacionDeduccion = DeduccionUrbanoDeclaracionJuradaService.validarDeduccionUrbana(deduccionPayload);
+        if (validacionDeduccion.isValid) {
+          await DeduccionUrbanoDeclaracionJuradaService.crearDeduccion(deduccionPayload);
+          console.log("✅ Deducción creada correctamente");
+        } else {
+          console.warn("⚠️ Deducción no válida:", validacionDeduccion.errors);
+        }
+      } 
+
+      // 7️⃣ GUARDADO EXITOSO
+      alert("✅ Declaración Jurada guardada exitosamente.");
+
+      // 8️⃣ ACTUALIZAR LISTA
+      const declaracionesActualizadas = await DeclaracionJuradaService.buscarDeclaracionesPorContribuyente(
+        contribuyenteSeleccionado.nombre
+      );
+      setDeclaraciones(declaracionesActualizadas);
+      setFase(2);
+    } catch (error) {
+            console.error("❌ Error crítico al guardar:", error);
+      let mensajeError = "Error al guardar la declaración.";
+      const msg = error?.message || "";
+
+      if (msg.includes("Validación falló")) {
+        mensajeError = `Error de validación: ${msg}`;
+      } else if (msg.includes("Network Error") || msg.includes("Failed to fetch")) {
+        mensajeError = "No se pudo conectar al servidor. Verifique que el backend esté funcionando.";
+      }
+
+      alert(`❌ ${mensajeError}`);
+    } finally {
+      setGuardando(false); // 🔓 Reactivar botón
+    }
+  };
+
+  // Guardar declaración jurada usando servicios SATGIZ directamente
+  /*const guardarDeclaracion = async () => {
     try {
       console.log("📝 Iniciando guardado de declaración jurada...");
 
@@ -688,7 +796,7 @@ const validarFormulario = () => {
       
       alert(`❌ ${mensajeError}`);
     }
-  };
+  };*/
 
   // Renderizar FASE 1: Búsqueda de contribuyentes
   const renderFaseBusqueda = () => (
