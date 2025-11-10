@@ -15,12 +15,15 @@ import {
   Checkbox,
 } from "@nextui-org/react";
 import DeclaracionJuradaService from "@/app/services/Sebastian/DeclaracionJurada/DeclaracionJuradaService";
+import { DeclaracionJuradaService as SATGIZDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Declaracion_Jurada_Services";
+import { DatosUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Datos_Urbano_Declaracion_Jurada_Services";
+import { DeduccionUrbanoDeclaracionJuradaService } from "@/app/services/SATGIZ/DeclaracionJurada/Deduccion_Urbano_Declaracion_Jurada_Services";
 
 export default function DeclaracionJurada() {
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState([]);
   const [cargando, setCargando] = useState(false);
-  const [seccion, setSeccion] = useState([]);
+  const [seccion, setSeccion] = useState("predio"); // Corregido: inicializado como string
 
   // Estados para las fases
   const [fase, setFase] = useState(1); // 1: Búsqueda, 2: Declaraciones, 3: Nueva DJ
@@ -38,13 +41,6 @@ export default function DeclaracionJurada() {
   const [tiposVia, setTiposVia] = useState([]);
   const [cargandoTiposVia, setCargandoTiposVia] = useState(false);
 
-  // Estados para deducciones
-  const [opcionesAutorizacion, setOpcionesAutorizacion] = useState([
-    { id: "SI", nombre: "SI" },
-    { id: "NO", nombre: "NO" }
-  ]);
-  const [cargandoOpcionesAutorizacion, setCargandoOpcionesAutorizacion] = useState(false);
-
   // Estados para tipos de predio
   const [tiposPredio, setTiposPredio] = useState([]);
   const [cargandoTiposPredio, setCargandoTiposPredio] = useState(false);
@@ -52,6 +48,12 @@ export default function DeclaracionJurada() {
   // Estados para tipos de denominación
   const [tiposDenominacion, setTiposDenominacion] = useState([]);
   const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
+
+  // Estado para errores de validación  
+  const [errores, setErrores] = useState({});
+
+  //Estado para guardar declaración jurada
+  const [guardando, setGuardando] = useState(false);
 
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
@@ -76,7 +78,7 @@ export default function DeclaracionJurada() {
     autoriza_deduccion: "",
     uso_predio_urbano: "",
     estado_predio: "",
-    tipo_predio: "",
+    clasificacion_predio: "",
     condicion_predio: "",
     area_total_terreno: "",
     tiene_agua: "",
@@ -87,17 +89,17 @@ export default function DeclaracionJurada() {
     numero_suministro_desague: "",
     
     // Datos del predio rural
-    departamento: "",
-    provincia: "",
-    distrito: "",
+    departamento_rural: "",
+    provincia_rural: "",
+    distrito_rural: "",
     zona_predio_rural: "",
     nombre_predio: "",
-    deduccion: "",
-    autoriza_deduccion: "",
+    deduccion_rural: "",
+    autoriza_deduccion_rural: "",
     uso_predio_rural: "",
-    estado_predio: "",
-    tipo_predio: "",
-    condicion_predio: "",
+    estado_predio_rural: "",
+    clasificacion_predio_rural: "",
+    condicion_predio_rural: "",
     area_terreno_rural: "",
     grupo_tierras: "",
     rango_altitud: "",
@@ -132,6 +134,59 @@ export default function DeclaracionJurada() {
     // Otras instalaciones
     otras_instalaciones: [],
   });
+
+  // FUNCIÓN DE VALIDACIÓN
+const validarFormulario = () => {
+  const errores = {};
+
+  // Validar datos básicos
+  if (!formData.periodo || formData.periodo.trim() === '') {
+    errores.periodo = "El período es requerido";
+  } else if (formData.periodo.length !== 4 || isNaN(formData.periodo)) {
+    errores.periodo = "El período debe ser un año válido (4 dígitos)";
+  }
+
+  // Validar predio urbano
+  if (formData.tipo_predio === "URBANO") {
+    if (!formData.departamento) {
+      errores.departamento = "El departamento es requerido";
+    }
+    if (!formData.provincia) {
+      errores.provincia = "La provincia es requerida";
+    }
+    if (!formData.distrito) {
+      errores.distrito = "El distrito es requerido";
+    }
+    if (!formData.tipo_via || formData.tipo_via.trim() === '') {
+      errores.tipo_via = "El tipo de vía es requerido";
+    }
+    if (!formData.nombre_via || formData.nombre_via.trim() === '') {
+      errores.nombre_via = "El nombre de vía es requerido";
+    }
+    if (!formData.area_total_terreno || formData.area_total_terreno <= 0) {
+      errores.area_total_terreno = "El área total debe ser mayor a 0";
+    }
+  }
+
+  // Validar predio rural
+  if (formData.tipo_predio === "RURAL") {
+    if (!formData.departamento_rural) {
+      errores.departamento_rural = "El departamento es requerido";
+    }
+    if (!formData.zona_predio_rural || formData.zona_predio_rural.trim() === '') {
+      errores.zona_predio_rural = "La zona del predio es requerida";
+    }
+    if (!formData.area_terreno_rural || formData.area_terreno_rural <= 0) {
+      errores.area_terreno_rural = "El área del terreno debe ser mayor a 0";
+    }
+  }
+
+  return {
+    isValid: Object.keys(errores).length === 0,
+    errores
+  };
+};
+
 
   const [nuevaInstalacion, setNuevaInstalacion] = useState({
     codigo: "",
@@ -292,13 +347,22 @@ export default function DeclaracionJurada() {
 
   // Manejar cambio de departamento - cargar provincias
   const handleDepartamentoChange = async (departamentoId) => {
-    handleInputChange("departamento", departamentoId);
-    
-    // Limpiar provincias y distritos anteriores
-    setProvincias([]);
-    setDistritos([]);
-    handleInputChange("provincia", "");
-    handleInputChange("distrito", "");
+    // Determinar si es para predio urbano o rural basado en el tipo de predio seleccionado
+    if (formData.tipo_predio === "URBANO") {
+      handleInputChange("departamento", departamentoId);
+      // Limpiar provincias y distritos anteriores
+      setProvincias([]);
+      setDistritos([]);
+      handleInputChange("provincia", "");
+      handleInputChange("distrito", "");
+    } else {
+      handleInputChange("departamento_rural", departamentoId);
+      // Limpiar provincias y distritos anteriores
+      setProvincias([]);
+      setDistritos([]);
+      handleInputChange("provincia_rural", "");
+      handleInputChange("distrito_rural", "");
+    }
 
     if (departamentoId) {
       try {
@@ -329,11 +393,18 @@ export default function DeclaracionJurada() {
 
   // Manejar cambio de provincia - cargar distritos
   const handleProvinciaChange = async (provinciaId) => {
-    handleInputChange("provincia", provinciaId);
-    
-    // Limpiar distritos anteriores
-    setDistritos([]);
-    handleInputChange("distrito", "");
+    // Determinar si es para predio urbano o rural basado en el tipo de predio seleccionado
+    if (formData.tipo_predio === "URBANO") {
+      handleInputChange("provincia", provinciaId);
+      // Limpiar distritos anteriores
+      setDistritos([]);
+      handleInputChange("distrito", "");
+    } else {
+      handleInputChange("provincia_rural", provinciaId);
+      // Limpiar distritos anteriores
+      setDistritos([]);
+      handleInputChange("distrito_rural", "");
+    }
 
     if (provinciaId) {
       try {
@@ -362,38 +433,31 @@ export default function DeclaracionJurada() {
     }
   };
 
-  //Cargar Autorización de deducciones al montar el componente
+  // Estados para opciones de autorización de deducción
+  const [cargandoOpcionesAutorizacion, setCargandoOpcionesAutorizacion] = useState(false);
+  const [opcionesAutorizacion, setOpcionesAutorizacion] = useState([]);
+
+  // Cargar opciones de autorización al montar el componente
   useEffect(() => {
-    async function cargarDeduccion() {
-      setCargandoOpcionesAutorizacion(true);
+    const cargarOpcionesAutorizacion = async () => {
       try {
-        const data = await DeclaracionJuradaService.DeduccionPorId(id);
-
-        // Ajusta el valor del backend si no devuelve "SI"/"NO"
-        setFormData((prev) => ({
-          ...prev,
-          ...data,
-          autoriza_deduccion:
-            data.autoriza_deduccion === true
-              ? "SI"
-              : data.autoriza_deduccion === false
-              ? "NO"
-              : data.autoriza_deduccion || "",
-        }));
-
-        // Opciones fijas
-        setOpcionesAutorizacion([
-          { id: "SI", nombre: "SI" },
-          { id: "NO", nombre: "NO" },
-        ]);
+        setCargandoOpcionesAutorizacion(true);
+        const opcionesData = await DeclaracionJuradaService.obtenerOpcionesAutorizacion();
+        console.log("Opciones de autorización cargadas:", opcionesData);
+        setOpcionesAutorizacion(opcionesData);
       } catch (error) {
-        console.error("Error al cargar deducción:", error);
+        console.error("Error al cargar opciones de autorización:", error);
+        // Datos de prueba si falla la API
+        setOpcionesAutorizacion([
+          { id: "SI", nombre: "Sí" },
+          { id: "NO", nombre: "No" }
+        ]);
       } finally {
         setCargandoOpcionesAutorizacion(false);
       }
-    }
+    };
 
-    cargarDeduccion();
+    cargarOpcionesAutorizacion();
   }, []);
 
   // Manejar selección de contribuyente - Transición a FASE 2
@@ -427,12 +491,21 @@ export default function DeclaracionJurada() {
 
   // Manejar nueva declaración jurada - Transición a FASE 3
   const handleNuevaDeclaracion = () => {
+    // Validar que existe contribuyente seleccionado
+    if (!contribuyenteSeleccionado) {
+      alert("Error: No hay contribuyente seleccionado. Volviendo a búsqueda.");
+      setFase(1);
+      return;
+    }
+  
+    console.log("Contribuyente seleccionado para nueva DJ:", contribuyenteSeleccionado);
+  
     setFase(3);
-    // Inicializar datos del formulario
-    setFormData({
-      ...formData,
+    // Inicializar SIN sobrescribir el estado existente
+    setFormData(prev => ({
+      ...prev,
       periodo: new Date().getFullYear().toString(),
-    });
+    }));
   };
 
   // Volver a fase anterior
@@ -501,38 +574,114 @@ export default function DeclaracionJurada() {
     }));
   };
 
-  // Guardar declaración jurada
+  // Guardar declaración jurada usando servicios SATGIZ directamente
   const guardarDeclaracion = async () => {
     try {
-      const datosCompletos = {
-        ...formData,
-        contribuyente_id: contribuyenteSeleccionado.id,
-        codigo: `DJ-${contribuyenteSeleccionado.id}-${formData.periodo}`,
-        ubicacion:
-          formData.tipo_predio === "URBANO"
-            ? `${formData.tipo_via} ${formData.nombre_via} ${formData.numero_municipal}`
-            : formData.zona_rural,
-        area_terreno:
-          formData.tipo_predio === "URBANO"
-            ? formData.area_terreno
-            : formData.area_terreno_rural,
-        deduccion: "NO", // Por defecto, se puede cambiar según lógica de negocio
+      setGuardando(true); // 🔒 Bloquear el botón
+      console.log("📝 Iniciando guardado de declaración jurada...");
+
+      // 1️⃣ VALIDAR FORMULARIO
+      const validacion = validarFormulario();
+      if (!validacion.isValid) {
+        setErrores(validacion.errores || {});
+        alert("❌ Corrige los errores en el formulario antes de guardar.");
+        return;
+      }
+
+      setErrores({}); // limpiar errores previos
+
+      // 2️⃣ VALIDAR CONTRIBUYENTE
+      if (!contribuyenteSeleccionado || !contribuyenteSeleccionado.id) {
+        alert("❌ No hay contribuyente seleccionado.");
+        return;
+      }
+
+      // 3️⃣ DATOS PRINCIPALES
+      const datosDeclaracionPrincipal = {
+        c_anio_liquidacion: formData.periodo?.toString() || new Date().getFullYear().toString(),
+        c_num_id: contribuyenteSeleccionado.id.toString(),
+        c_contribuyente_principal: contribuyenteSeleccionado.nombre || "N/A",
+        c_tipo_predio: formData.tipo_predio || "URBANO",
+        c_estado: "PENDIENTE"
       };
 
-      const resultado = await DeclaracionJuradaService.crearDeclaracionJurada(
-        datosCompletos
-      );
-      console.log("Declaración guardada:", resultado);
+      console.log("📦 Datos declaración principal:", datosDeclaracionPrincipal);
 
-      // Volver a la fase 2 y actualizar lista
-      const declaracionesActualizadas =
-        await DeclaracionJuradaService.buscarDeclaracionesPorContribuyente(
-          contribuyenteSeleccionado.nombre
-        );
+      const validacionPrincipal = SATGIZDeclaracionJuradaService.validarDeclaracionJurada(datosDeclaracionPrincipal);
+      if (!validacionPrincipal.isValid) {
+        console.error("❌ Errores de validación:", validacionPrincipal.errors);
+        alert("❌ Error de validación en la declaración principal.");
+        return;
+      }
+
+      // 4️⃣ CREAR DECLARACIÓN PRINCIPAL
+      const declaracionPrincipal = await SATGIZDeclaracionJuradaService.crearNuevaDeclaracion(datosDeclaracionPrincipal);
+      console.log("✅ Declaración principal creada:", declaracionPrincipal);
+
+      // 5️⃣ DATOS URBANOS (si aplica)
+      if (formData.tipo_predio === "URBANO") {
+        const datosUrbanosPayload = {
+          c_uso_predio_urbano: formData.uso_predio_urbano || "",
+          c_estado_predio: formData.estado_predio || "",
+          c_tipo_predio: formData.clasificacion_predio || "",
+          c_condicion_predio: formData.condicion_predio || "",
+          n_area_total_terreno: parseFloat(formData.area_total_terreno || 0)
+        };
+
+        console.log("🏙️ Datos urbanos:", datosUrbanosPayload);
+
+        const validacionUrbana = DatosUrbanoDeclaracionJuradaService.validarDatoUrbano(datosUrbanosPayload);
+        if (validacionUrbana.isValid) {
+          await DatosUrbanoDeclaracionJuradaService.crearDatoUrbano(datosUrbanosPayload);
+          console.log("✅ Datos urbanos creados correctamente");
+        } else {
+        console.warn("⚠️ Datos urbanos no válidos:", validacionUrbana.errors);
+        }
+      } 
+
+      // 6️⃣ DEDUCCIÓN (si aplica)
+      if (formData.deduccion && formData.deduccion !== "NO") {
+        const deduccionPayload = {
+          c_descripcion_deduccion: formData.deduccion,
+          c_autorizado: formData.autoriza_deduccion === "SI"
+        };
+
+        console.log("💰 Datos deducción:", deduccionPayload);
+
+        const validacionDeduccion = DeduccionUrbanoDeclaracionJuradaService.validarDeduccionUrbana(deduccionPayload);
+        if (validacionDeduccion.isValid) {
+          await DeduccionUrbanoDeclaracionJuradaService.crearDeduccion(deduccionPayload);
+          console.log("✅ Deducción creada correctamente");
+        } else {
+          console.warn("⚠️ Deducción no válida:", validacionDeduccion.errors);
+        }
+      } 
+
+      // 7️⃣ GUARDADO EXITOSO
+      alert("✅ Declaración Jurada guardada exitosamente.");
+
+      // 8️⃣ ACTUALIZAR LISTA
+      const declaracionesActualizadas = await DeclaracionJuradaService.buscarDeclaracionesPorContribuyente(
+        contribuyenteSeleccionado.nombre
+      );
+
       setDeclaraciones(declaracionesActualizadas);
       setFase(2);
+
     } catch (error) {
-      console.error("Error al guardar declaración:", error);
+      console.error("❌ Error crítico al guardar:", error);
+      let mensajeError = "Error al guardar la declaración.";
+      const msg = error?.message || "";
+
+      if (msg.includes("Validación falló")) {
+        mensajeError = `Error de validación: ${msg}`;
+      } else if (msg.includes("Network Error") || msg.includes("Failed to fetch")) {
+        mensajeError = "No se pudo conectar al servidor. Verifique que el backend esté funcionando.";
+      }
+
+      alert(`❌ ${mensajeError}`);
+    } finally {
+      setGuardando(false); // 🔓 Reactivar botón
     }
   };
 
@@ -741,846 +890,886 @@ export default function DeclaracionJurada() {
   );
 
   // Renderizar FASE 3: Formulario de nueva declaración jurada
-  const renderFaseNuevaDeclaracion = () => (
-    <div>
-      <div className="mb-6 p-4 bg-#eff6ff border border-#bedbff rounded-lg">
-        <h3 className="font-bold text-lg mb-2">Nueva Declaración Jurada</h3>
-        <p>
-          <strong>Contribuyente:</strong> {contribuyenteSeleccionado.nombre}
-        </p>
-        <p>
-          <strong>ID Contribuyente:</strong> {contribuyenteSeleccionado.id}
-        </p>
-        <p>
-          <strong>Periodo:</strong> {formData.periodo}
-        </p>
-      </div>
-
-      {/* Selección de tipo de predio */}
-      <div className="mb-6">
-        <Select
-          label="Tipo de Predio a registrar"
-          selectedKeys={[formData.tipo_predio]}
-          onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
-          className="max-w-xs"
-        >
-          <SelectItem key="URBANO" value="URBANO">
-            PREDIO URBANO
-          </SelectItem>
-          <SelectItem key="RURAL" value="RURAL">
-            PREDIO RURAL
-          </SelectItem>
-        </Select>
-      </div>
-
-      {/* Botones de navegación */}
-      <div className="flex gap-2 mb-6">
-        <Button
-          color={seccion === "predio" ? "primary" : "default"}
-          onPress={() => setSeccion("predio")}
-        >
-          Datos del Predio
-        </Button>
-        <Button
-          color={seccion === "construccion" ? "primary" : "default"}
-          onPress={() => setSeccion("construccion")}
-        >
-          Características de la Construcción
-        </Button>
-        <Button
-          color={seccion === "instalaciones" ? "primary" : "default"}
-          onPress={() => setSeccion("instalaciones")}
-        >
-          Otras Instalaciones
-        </Button>
-      </div>
-
-      {/* Formulario según tipo de predio */}
-      {seccion === "predio" && (
-        <>
-          {formData.tipo_predio === "URBANO" ? (
-            <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <h4 className="font-bold">Ubicación del Predio Urbano</h4>
-            </CardHeader>
-            <CardBody>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select
-                  label="Departamento"
-                  selectedKeys={formData.departamento ? [formData.departamento] : []}
-                  onChange={(e) => handleDepartamentoChange(e.target.value)}
-                  isLoading={cargandoUbicaciones}
-                >
-                  {departamentos.map((departamento) => (
-                    <SelectItem key={departamento.id} value={departamento.id}>
-                      {departamento.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Select
-                  label="Provincia"
-                  selectedKeys={formData.provincia ? [formData.provincia] : []}
-                  onChange={(e) => handleProvinciaChange(e.target.value)}
-                  isLoading={cargandoUbicaciones}
-                  isDisabled={!formData.departamento}
-                >
-                  {provincias.map((provincia) => (
-                    <SelectItem key={provincia.id} value={provincia.id}>
-                      {provincia.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Select
-                  label="Distrito"
-                  selectedKeys={formData.distrito ? [formData.distrito] : []}
-                  onChange={(e) => handleInputChange("distrito", e.target.value)}
-                  isLoading={cargandoUbicaciones}
-                  isDisabled={!formData.provincia}
-                >
-                  {distritos.map((distrito) => (
-                    <SelectItem key={distrito.id} value={distrito.id}>
-                      {distrito.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Input
-                  label="Código de Vía"
-                  value={formData.codigo_via}
-                  onChange={(e) => handleInputChange("codigo_via", e.target.value)}
-                />
-                <Input
-                  label="Tipo de Vía"
-                  value={formData.tipo_via || ""}
-                  onChange={(e) => handleInputChange("tipo_via", e.target.value)}
-                />
-                <Input
-                  label="Nombre de Vía"
-                  value={formData.nombre_via}
-                  onChange={(e) => handleInputChange("nombre_via", e.target.value)}
-                />
-                <Input
-                  label="Arancel"
-                  value={formData.arancel}
-                  onChange={(e) => handleInputChange("arancel", e.target.value)}
-                  placeholder="S/."
-                />
-                <Input
-                  label="Número Municipal"
-                  value={formData.numero_municipal}
-                  onChange={(e) => handleInputChange("numero_municipal", e.target.value)}
-                />
-                <Input
-                  label="Manzana Urbana"
-                  value={formData.manzana_urbana}
-                  onChange={(e) => handleInputChange("manzana_urbana", e.target.value)}
-                />
-                <Input
-                  label="Lote Urbano"
-                  value={formData.lote_urbano}
-                  onChange={(e) => handleInputChange("lote_urbano", e.target.value)}
-                />
-                <Select
-                  label="Tipo de Denominación Urbana"
-                  selectedKeys={formData.tipo_denominacion_urbana ? [formData.tipo_denominacion_urbana] : []}
-                  onChange={(e) => handleInputChange("tipo_denominacion_urbana", e.target.value)}
-                  isLoading={cargandoTiposDenominacion}
-                >
-                  {tiposDenominacion.map((tipoDenominacion) => (
-                    <SelectItem key={tipoDenominacion.id} value={tipoDenominacion.id}>
-                      {tipoDenominacion.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Input
-                  label="Nombre de Denominación Urbana"
-                  value={formData.nombre_denominacion_urbana}
-                  onChange={(e) => handleInputChange("nombre_denominacion_urbana", e.target.value)}
-                />
-              </div>
-
-              <Divider className="my-8"/>
-
-              <div>
-                <h4 className="text-md font-semibold mb-4">Deducción del Predio</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="flex items-center space-x-2">
-                      <Input
-                        label="La deducción sería"
-                        value={formData.deduccion || "50% de la base imponible"}
-                        isDisabled={!formData.deduccion}
-                      />
-                      <Select
-                        label="¿Se autoriza?"
-                        selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
-                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
-                        isLoading={cargandoOpcionesAutorizacion}
-                      >
-                        {opcionesAutorizacion.map((opcionesAutorizacion) => (
-                          <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
-                            {opcionesAutorizacion.nombre}
-                          </SelectItem>
-                        ))}
-                      </Select>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <Divider className="my-8"/>
-
-              <div>
-                <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Uso del Predio Urbano"
-                    value={formData.uso_predio_urbano}
-                    onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
-                  />
-                  <Select
-                    label="Estado del Predio"
-                    selectedKeys={formData.estado_predio ? [formData.estado_predio] : []}
-                    onChange={(e) => handleInputChange("estado_predio", e.target.value)}
-                  >
-                    <SelectItem key="BUENO" value="BUENO">BUENO</SelectItem>
-                    <SelectItem key="REGULAR" value="REGULAR">REGULAR</SelectItem>
-                    <SelectItem key="MALO" value="MALO">MALO</SelectItem>
-                  </Select>
-                  <Select
-                    label="Tipo de Predio"
-                    selectedKeys={formData.tipo_predio ? [formData.tipo_predio] : []}
-                    onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
-                    isLoading={cargandoTiposPredio}
-                  >
-                    {tiposPredio.map((tipoPredio) => (
-                      <SelectItem key={tipoPredio.id} value={tipoPredio.id}>
-                        {tipoPredio.nombre}
-                      </SelectItem>
-                    ))}
-                  </Select>
-                  <Select
-                    label="Condición del Predio"
-                    selectedKeys={formData.condicion_predio ? [formData.condicion_predio] : []}
-                    onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
-                  >
-                    <SelectItem key="PROPIO" value="PROPIO">PROPIO</SelectItem>
-                    <SelectItem key="ALQUILADO" value="ALQUILADO">ALQUILADO</SelectItem>
-                    <SelectItem key="PRESTADO" value="PRESTADO">PRESTADO</SelectItem>
-                  </Select>
-                  <Input
-                    label="Área Total del Terreno (m²)"
-                    type="number"
-                    value={formData.area_total_terreno}
-                    onChange={(e) => handleInputChange("area_total_terreno", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <Divider className="my-8"/>
-
-              <div className="md:col-span-2">
-                <h4 className="text-md font-semibold mb-4">Datos Complementarios del Predio (Servicios Básicos)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Agua */}
-                  <div className="space-y-2">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.tiene_agua || false}
-                        onChange={(e) => handleInputChange("tiene_agua", e.target.checked)}
-                        className="h-4 w-4 rounded border-#6a7282 text-#155dfc focus:ring-#2b7fff"
-                      />
-                      <span className="text-sm font-medium text-#364153">Agua</span>
-                    </label> 
-                    <Input
-                      label="N° de Suministro de Agua"
-                      value={formData.numero_suministro_agua || ""}
-                      onChange={(e) => handleInputChange("numero_suministro_agua", e.target.value)}
-                      isDisabled={!formData.tiene_agua}
-                      size="sm"  
-                    />
-                  </div>
-
-                  {/* Luz */}
-                  <div className="space-y-2">
-                   <label className="flex items-center space-x-2">
-                     <input
-                       type="checkbox"
-                       checked={formData.tiene_luz || false}
-                       onChange={(e) => handleInputChange("tiene_luz", e.target.checked)}
-                       className="h-4 w-4 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
-                      />
-                      <span className="text-sm font-medium text-#364153">Luz</span>
-                    </label>
-                    <Input
-                      label="N° de Suministro de Luz"
-                      value={formData.numero_suministro_luz || ""}
-                      onChange={(e) => handleInputChange("numero_suministro_luz", e.target.value)}
-                      isDisabled={!formData.tiene_luz}
-                      size="sm"
-                    />
-                  </div>
-
-                  {/* Desagüe */}
-                  <div className="space-y-2">
-                   <label className="flex items-center space-x-2">
-                     <input
-                       type="checkbox"
-                       checked={formData.tiene_desague || false}
-                       onChange={(e) => handleInputChange("tiene_desague", e.target.checked)}
-                       className="h-4 w-4 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
-                      />
-                      <span className="text-sm font-medium text-#364153">Desagüe</span>
-                    </label>
-                    <Input
-                      label="N° de Suministro de Desagüe"
-                      value={formData.numero_suministro_desague || ""}
-                      onChange={(e) => handleInputChange("numero_suministro_desague", e.target.value)}
-                      isDisabled={!formData.tiene_desague}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <h4 className="font-bold">Ubicación del Predio Rural</h4>
-            </CardHeader>
-            <CardBody>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select
-                  label="Departamento"
-                  selectedKeys={formData.departamento ? [formData.departamento] : []}
-                  onChange={(e) => handleDepartamentoChange(e.target.value)}
-                  isLoading={cargandoUbicaciones}
-                >
-                  {departamentos.map((departamento) => (
-                    <SelectItem key={departamento.id} value={departamento.id}>
-                      {departamento.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Select
-                  label="Provincia"
-                  selectedKeys={formData.provincia ? [formData.provincia] : []}
-                  onChange={(e) => handleProvinciaChange(e.target.value)}
-                  isLoading={cargandoUbicaciones}
-                  isDisabled={!formData.departamento}
-                >
-                  {provincias.map((provincia) => (
-                    <SelectItem key={provincia.id} value={provincia.id}>
-                      {provincia.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Select
-                  label="Distrito"
-                  selectedKeys={formData.distrito ? [formData.distrito] : []}
-                  onChange={(e) => handleInputChange("distrito", e.target.value)}
-                  isLoading={cargandoUbicaciones}
-                  isDisabled={!formData.provincia}
-                >
-                  {distritos.map((distrito) => (
-                    <SelectItem key={distrito.id} value={distrito.id}>
-                      {distrito.nombre}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Input
-                  label="Zona donde se encuentra el Predio Rural"
-                  value={formData.zona_predio_rural}
-                  onChange={(e) => handleInputChange("zona_predio_rural", e.target.value)}
-                />
-                <Input
-                  label="Nombre del Predio"
-                  value={formData.nombre_predio}
-                  onChange={(e) => handleInputChange("nombre_predio", e.target.value)}
-                />
-              </div>
-
-              <Divider className="my-8"/>
-
-              <div>
-                <h4 className="text-md font-semibold mb-4">Deducción del Predio</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="flex items-center space-x-2">
-                      <Input
-                        label="La deducción sería"
-                        value={formData.deduccion || "50% de la base imponible"}
-                        isDisabled={!formData.deduccion}
-                      />
-                      <Select
-                        label="¿Se autoriza?"
-                        selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
-                        onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
-                        isLoading={cargandoOpcionesAutorizacion}
-                      >
-                        {opcionesAutorizacion.map((opcionesAutorizacion) => (
-                          <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
-                            {opcionesAutorizacion.nombre}
-                          </SelectItem>
-                        ))}
-                      </Select>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <Divider className="my-8"/>
-              <div>
-                <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Uso del Predio Rural"
-                    value={formData.uso_predio_rural}
-                    onChange={(e) => handleInputChange("uso_predio_rural", e.target.value)}
-                  />
-                  <Select
-                    label="Estado del Predio"
-                    selectedKeys={formData.estado_predio ? [formData.estado_predio] : []}
-                    onChange={(e) => handleInputChange("estado_predio", e.target.value)}
-                  >
-                    <SelectItem key="BUENO" value="BUENO">BUENO</SelectItem>
-                    <SelectItem key="REGULAR" value="REGULAR">REGULAR</SelectItem>
-                    <SelectItem key="MALO" value="MALO">MALO</SelectItem>
-                  </Select>
-                  <Select
-                    label="Tipo de Predio"
-                    selectedKeys={formData.tipo_predio ? [formData.tipo_predio] : []}
-                    onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
-                    isLoading={cargandoTiposPredio}
-                  >
-                    {tiposPredio.map((tipoPredio) => (
-                      <SelectItem key={tipoPredio.id} value={tipoPredio.id}>
-                        {tipoPredio.nombre}
-                      </SelectItem>
-                    ))}
-                  </Select>
-                  <Select
-                    label="Condición del Predio"
-                    selectedKeys={formData.condicion_predio ? [formData.condicion_predio] : []}
-                    onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
-                  >
-                    <SelectItem key="PROPIO" value="PROPIO">PROPIO</SelectItem>
-                    <SelectItem key="ALQUILADO" value="ALQUILADO">ALQUILADO</SelectItem>
-                    <SelectItem key="PRESTADO" value="PRESTADO">PRESTADO</SelectItem>
-                  </Select>
-                <Input
-                  label="Área del Terreno (HA)"
-                  type="number"
-                  value={formData.area_terreno_rural}
-                  onChange={(e) => handleInputChange("area_terreno_rural", e.target.value)}
-                />
-                <Input
-                  label="Grupo de Tierras"
-                  value={formData.grupo_tierras}
-                  onChange={(e) => handleInputChange("grupo_tierras", e.target.value)}
-                />
-                <Input
-                  label="Rango de Altitud"
-                  value={formData.rango_altitud}
-                  onChange={(e) => handleInputChange("rango_altitud", e.target.value)}
-                />
-                <Input
-                  label="Calidad Agrícola"
-                  value={formData.calidad_agricola}
-                  onChange={(e) => handleInputChange("calidad_agricola", e.target.value)}
-                />
-                <Input
-                  label="Valor por Categoría"
-                  value={formData.valor_categoria}
-                  onChange={(e) => handleInputChange("valor_categoria", e.target.value)}
-                />
-              </div>
-             </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
-      </>
-      )}
-
-      {/* Características de construcción */}
-      {seccion === "construccion" && (
-        <Card className="mt-6">
-          <CardHeader>
-            <h4 className="font-bold">Información de construcciones</h4>
-          </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Nro. de Piso"
-                value={formData.numero_piso}
-                onChange={(e) => handleInputChange("numero_piso", e.target.value)}
-              />
-              <Input
-                label="Sección de Piso"
-                value={formData.seccion_piso}
-                onChange={(e) => handleInputChange("seccion_piso", e.target.value)}
-              />
-              <Input
-                label="Fecha de Construcción"
-                type="date"
-                value={formData.fecha_construccion}
-                onChange={(e) =>
-                  handleInputChange("fecha_construccion", e.target.value)
-                }
-              />
-              <Input
-                label="Material Estructural Predominante (MEP)"
-                value={formData.material_estructural_predominante}
-                onChange={(e) =>
-                  handleInputChange("material_estructural_predominante", e.target.value)
-                }
-              />
-              <Input
-                label="Estado Conservación Acabados (ECC)"
-                value={formData.estado_conservacion_acabados}
-                onChange={(e) =>
-                  handleInputChange(
-                    "estado_conservacion_acabados",
-                    e.target.value
-                  )
-                }
-              />
-              <Input
-                label="Estado Conservación Estructura (ECS)"
-                value={formData.estado_conservacion_estructura}
-                onChange={(e) =>
-                  handleInputChange(
-                    "estado_conservacion_estructura",
-                    e.target.value
-                  )
-                }
-              />
-              <Input
-                label="Unidad de Medida de Construcción (UCA)"
-                value={formData.unidad_medida_construccion}
-                onChange={(e) =>
-                  handleInputChange("unidad_medida_construccion", e.target.value)
-                }
-              />
-              <Input
-                label="Muros/Columnas"
-                value={formData.muros}
-                onChange={(e) =>
-                  handleInputChange("muros", e.target.value)
-                }
-              />
-              <Input
-                label="Techos"
-                value={formData.techos}
-                onChange={(e) =>
-                  handleInputChange("techos", e.target.value)
-                }
-              />
-              <Input
-                label="Pisos"
-                value={formData.pisos}
-                onChange={(e) =>
-                  handleInputChange("pisos", e.target.value)
-                }
-              />
-              <Input
-                label="Revestimiento"
-                value={formData.revestimiento}
-                onChange={(e) =>
-                  handleInputChange("revestimiento", e.target.value)
-                }
-              />
-              <Input
-                label="Baños"
-                value={formData.banios}
-                onChange={(e) => handleInputChange("banios", e.target.value)}
-              />
-              <Input
-                label="Instalaciones Eléctricas Sanitarias"
-                value={formData.instalaciones_electricas}
-                onChange={(e) =>
-                  handleInputChange("instalaciones_electricas", e.target.value)
-                }
-              />
-              <Input
-                label="Área Construida Declarada"
-                value={formData.area_construida_declarada}
-                onChange={(e) =>
-                  handleInputChange("area_construida_declarada", e.target.value)
-                }
-              />
-              <Input
-                label="Área Construida Verificada"
-                value={formData.area_construida_verificada}
-                onChange={(e) =>
-                  handleInputChange("area_construida_verificada", e.target.value)
-                }
-              />
-            </div>
-
-            <Divider className="my-8"/>
-
-            <div>
-              <h4 className="text-md font-semibold mb-4">Información para el Calculo</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                label="Valor Unitario (M2)"
-                value={formData.valor_unitario}
-                onChange={(e) => handleInputChange("valor_unitario", e.target.value)}
-              />
-              <Input
-                label="Depreciación"
-                value={formData.depreciacion}
-                onChange={(e) => handleInputChange("depreciacion", e.target.value)}
-              />
-              <Input
-                label="Valor Unitario Depreciado"
-                value={formData.valor_unitario_depreciado}
-                onChange={(e) =>
-                  handleInputChange("valor_unitario_depreciado", e.target.value)
-                }
-              />
-              <Input
-                label="Área Construida (M2)"
-                value={formData.material_estructural_predominante}
-                onChange={(e) =>
-                  handleInputChange("material_estructural_predominante", e.target.value)
-                }
-              />
-              <Input
-                label="Valor Total de Áreas Construidas"
-                value={formData.valor_total_areas}
-                onChange={(e) =>
-                  handleInputChange(
-                    "valor_total_areas",
-                    e.target.value
-                  )
-                }
-              />
-              <Input
-                label="Valor de Construcción por Piso"
-                value={formData.valor_construccion_piso}
-                onChange={(e) =>
-                  handleInputChange(
-                    "valor_construccion_piso",
-                    e.target.value
-                  )
-                }
-              />
-              <Input
-                label="Valor Total de Construcción"
-                value={formData.valor_total_construccion}
-                onChange={(e) =>
-                  handleInputChange("valor_total_construccion", e.target.value)
-                }
-              />
-            </div>
+  const renderFaseNuevaDeclaracion = () => {
+    //  Validación EXTRA de seguridad
+    /*if (!contribuyenteSeleccionado || !contribuyenteSeleccionado.id) {
+      return (
+        <div className="p-8 text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h3 className="text-red-800 font-bold text-lg mb-2">Error de datos</h3>
+            <p className="text-red-600 mb-4">
+              No se encontró información del contribuyente. 
+              Esto puede pasar si hubo un error al cargar los datos.
+            </p>
+            <Button onPress={() => setFase(1)} color="danger">
+              Volver a buscar contribuyente
+            </Button>
           </div>
-         </CardBody>
-        </Card>
-      )}
+        </div>
+      );
+    }*/
 
-      {/* Otras instalaciones */}
-      {seccion === "instalaciones" && (
-        <Card className="mt-6">
-          <CardHeader>
-            <h4 className="font-bold">Otras Instalaciones</h4>
-          </CardHeader>
-          <CardBody>
-            <div className="space-y-4">
-              {/* Formulario para agregar nueva instalación */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-#f9fafb rounded-lg">
+    return (
+      <div>
+        <div className="mb-6 p-4 bg-#eff6ff border border-#bedbff rounded-lg">
+          <h3 className="font-bold text-lg mb-2">Nueva Declaración Jurada</h3>
+          <p>
+            <strong>Contribuyente:</strong> {contribuyenteSeleccionado.nombre}
+          </p>
+          <p>
+            <strong>ID Contribuyente:</strong> {contribuyenteSeleccionado.id}
+          </p>
+          <p>
+            <strong>Periodo:</strong> {formData.periodo}
+          </p>
+        </div>
+
+        {/* Selección de tipo de predio */}
+        <div className="mb-6">
+          <Select
+            label="Tipo de Predio a registrar"
+            selectedKeys={[formData.tipo_predio]}
+            onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
+            className="max-w-xs"
+          >
+            <SelectItem key="URBANO" value="URBANO">
+              PREDIO URBANO
+            </SelectItem>
+            <SelectItem key="RURAL" value="RURAL">
+              PREDIO RURAL
+            </SelectItem>
+          </Select>
+        </div>
+
+        {/* Botones de navegación */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            color={seccion === "predio" ? "primary" : "default"}
+            onPress={() => setSeccion("predio")}
+          >
+            Datos del Predio
+          </Button>
+          <Button
+            color={seccion === "construccion" ? "primary" : "default"}
+            onPress={() => setSeccion("construccion")}
+          >
+            Características de la Construcción
+          </Button>
+          <Button
+            color={seccion === "instalaciones" ? "primary" : "default"}
+            onPress={() => setSeccion("instalaciones")}
+          >
+            Otras Instalaciones
+          </Button>
+        </div>
+
+        {/* Formulario según tipo de predio */}
+        {seccion === "predio" && (
+          <>
+            {formData.tipo_predio === "URBANO" ? (
+              <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <h4 className="font-bold">Ubicación del Predio Urbano</h4>
+              </CardHeader>
+              <CardBody>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select
+                    label="Departamento"
+                    selectedKeys={formData.departamento ? [formData.departamento] : []}
+                    onChange={(e) => handleDepartamentoChange(e.target.value)}
+                    isLoading={cargandoUbicaciones}
+                    isInvalid={!!errores.departamento}
+                    errorMessage={errores.departamento}
+                  >
+                    {departamentos.map((departamento) => (
+                      <SelectItem key={departamento.id} value={departamento.id}>
+                        {departamento.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Select
+                    label="Provincia"
+                    selectedKeys={formData.provincia ? [formData.provincia] : []}
+                    onChange={(e) => handleProvinciaChange(e.target.value)}
+                    isLoading={cargandoUbicaciones}
+                    isDisabled={!formData.departamento}
+                    isInvalid={!!errores.provincia}
+                    errorMessage={errores.provincia}
+                  >
+                    {provincias.map((provincia) => (
+                      <SelectItem key={provincia.id} value={provincia.id}>
+                        {provincia.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Select
+                    label="Distrito"
+                    selectedKeys={formData.distrito ? [formData.distrito] : []}
+                    onChange={(e) => handleInputChange("distrito", e.target.value)}
+                    isLoading={cargandoUbicaciones}
+                    isDisabled={!formData.provincia}
+                    isInvalid={!!errores.distrito}
+                    errorMessage={errores.distrito}
+                  >
+                    {distritos.map((distrito) => (
+                      <SelectItem key={distrito.id} value={distrito.id}>
+                        {distrito.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Código de Vía"
+                    value={formData.codigo_via}
+                    onChange={(e) => handleInputChange("codigo_via", e.target.value)}
+                  />
+                  <Input
+                    label="Tipo de Vía"
+                    value={formData.tipo_via}
+                    onChange={(e) => handleInputChange("tipo_via", e.target.value)}
+                    placeholder="Ej: AVENIDA, CALLE, JIRÓN, etc."
+                    isInvalid={!!errores.tipo_via}
+                    errorMessage={errores.tipo_via}
+                  />
+                  <Input
+                    label="Nombre de Vía"
+                    value={formData.nombre_via}
+                    onChange={(e) => handleInputChange("nombre_via", e.target.value)}
+                    placeholder="Ingrese el nombre de la vía"
+                    isInvalid={!!errores.nombre_via}
+                    errorMessage={errores.nombre_via}
+                  />
+                  <Input
+                    label="Arancel"
+                    value={formData.arancel}
+                    onChange={(e) => handleInputChange("arancel", e.target.value)}
+                    placeholder="S/."
+                  />
+                  <Input
+                    label="Número Municipal"
+                    value={formData.numero_municipal}
+                    onChange={(e) => handleInputChange("numero_municipal", e.target.value)}
+                  />
+                  <Input
+                    label="Manzana Urbana"
+                    value={formData.manzana_urbana}
+                    onChange={(e) => handleInputChange("manzana_urbana", e.target.value)}
+                  />
+                  <Input
+                    label="Lote Urbano"
+                    value={formData.lote_urbano}
+                    onChange={(e) => handleInputChange("lote_urbano", e.target.value)}
+                  />
+                  <Select
+                    label="Tipo de Denominación Urbana"
+                    selectedKeys={formData.tipo_denominacion_urbana ? [formData.tipo_denominacion_urbana] : []}
+                    onChange={(e) => handleInputChange("tipo_denominacion_urbana", e.target.value)}
+                    isLoading={cargandoTiposDenominacion}
+                  >
+                    {tiposDenominacion.map((tipoDenominacion) => (
+                      <SelectItem key={tipoDenominacion.id} value={tipoDenominacion.id}>
+                        {tipoDenominacion.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Nombre de Denominación Urbana"
+                    value={formData.nombre_denominacion_urbana}
+                    onChange={(e) => handleInputChange("nombre_denominacion_urbana", e.target.value)}
+                  />
+                </div>
+
+                <Divider className="my-8"/>
+
+                <div>
+                  <h4 className="text-md font-semibold mb-4">Deducción del Predio</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="flex items-center space-x-2">
+                        <Input
+                          label="La deducción sería"
+                          value={formData.deduccion}
+                          onChange={(e) => handleInputChange("deduccion", e.target.value)}
+                        />
+                        <Select
+                          label="¿Se autoriza?"
+                          selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
+                          onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
+                          isLoading={cargandoOpcionesAutorizacion}
+                          isDisabled={!formData.deduccion}
+                        >
+                          {opcionesAutorizacion.map((opcionesAutorizacion) => (
+                            <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
+                              {opcionesAutorizacion.nombre}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <Divider className="my-8"/>
+
+                <div>
+                  <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Uso del Predio Urbano"
+                      value={formData.uso_predio_urbano}
+                      onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
+                    />
+                    <Select
+                      label="Estado del Predio"
+                      selectedKeys={formData.estado_predio ? [formData.estado_predio] : []}
+                      onChange={(e) => handleInputChange("estado_predio", e.target.value)}
+                    >
+                      <SelectItem key="BUENO" value="BUENO">BUENO</SelectItem>
+                      <SelectItem key="REGULAR" value="REGULAR">REGULAR</SelectItem>
+                      <SelectItem key="MALO" value="MALO">MALO</SelectItem>
+                    </Select>
+                    <Select
+                      label="Clasificación del Predio"
+                      selectedKeys={formData.clasificacion_predio ? [formData.clasificacion_predio] : []}
+                      onChange={(e) => handleInputChange("clasificacion_predio", e.target.value)}
+                      isLoading={cargandoTiposPredio}
+                    >
+                      {tiposPredio.map((tipoPredio) => (
+                        <SelectItem key={tipoPredio.id} value={tipoPredio.id}>
+                          {tipoPredio.nombre}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    <Select
+                      label="Condición del Predio"
+                      selectedKeys={formData.condicion_predio ? [formData.condicion_predio] : []}
+                      onChange={(e) => handleInputChange("condicion_predio", e.target.value)}
+                    >
+                      <SelectItem key="PROPIO" value="PROPIO">PROPIO</SelectItem>
+                      <SelectItem key="ALQUILADO" value="ALQUILADO">ALQUILADO</SelectItem>
+                      <SelectItem key="PRESTADO" value="PRESTADO">PRESTADO</SelectItem>
+                    </Select>
+                    <Input
+                      label="Área Total del Terreno (m²)"
+                      type="number"
+                      value={formData.area_total_terreno}
+                      onChange={(e) => handleInputChange("area_total_terreno", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <Divider className="my-8"/>
+
+                <div className="md:col-span-2">
+                  <h4 className="text-md font-semibold mb-4">Datos Complementarios del Predio (Servicios Básicos)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Agua */}
+                    <div className="space-y-2">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.tiene_agua || false}
+                          onChange={(e) => handleInputChange("tiene_agua", e.target.checked)}
+                          className="h-4 w-4 rounded border-#6a7282 text-#155dfc focus:ring-#2b7fff"
+                        />
+                        <span className="text-sm font-medium text-#364153">Agua</span>
+                      </label> 
+                      <Input
+                        label="N° de Suministro de Agua"
+                        value={formData.numero_suministro_agua || ""}
+                        onChange={(e) => handleInputChange("numero_suministro_agua", e.target.value)}
+                        isDisabled={!formData.tiene_agua}
+                        size="sm"  
+                      />
+                    </div>
+
+                    {/* Luz */}
+                    <div className="space-y-2">
+                     <label className="flex items-center space-x-2">
+                       <input
+                         type="checkbox"
+                         checked={formData.tiene_luz || false}
+                         onChange={(e) => handleInputChange("tiene_luz", e.target.checked)}
+                         className="h-4 w-4 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
+                        />
+                        <span className="text-sm font-medium text-#364153">Luz</span>
+                      </label>
+                      <Input
+                        label="N° de Suministro de Luz"
+                        value={formData.numero_suministro_luz || ""}
+                        onChange={(e) => handleInputChange("numero_suministro_luz", e.target.value)}
+                        isDisabled={!formData.tiene_luz}
+                        size="sm"
+                      />
+                    </div>
+
+                    {/* Desagüe */}
+                    <div className="space-y-2">
+                     <label className="flex items-center space-x-2">
+                       <input
+                         type="checkbox"
+                         checked={formData.tiene_desague || false}
+                         onChange={(e) => handleInputChange("tiene_desague", e.target.checked)}
+                         className="h-4 w-4 rounded border-#d1d5dc text-#155dfc focus:ring-#2b7fff"
+                        />
+                        <span className="text-sm font-medium text-#364153">Desagüe</span>
+                      </label>
+                      <Input
+                        label="N° de Suministro de Desagüe"
+                        value={formData.numero_suministro_desague || ""}
+                        onChange={(e) => handleInputChange("numero_suministro_desague", e.target.value)}
+                        isDisabled={!formData.tiene_desague}
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <h4 className="font-bold">Ubicación del Predio Rural</h4>
+              </CardHeader>
+              <CardBody>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select
+                    label="Departamento"
+                    selectedKeys={formData.departamento_rural ? [formData.departamento_rural] : []}
+                    onChange={(e) => handleDepartamentoChange(e.target.value)}
+                    isLoading={cargandoUbicaciones}
+                  >
+                    {departamentos.map((departamento) => (
+                      <SelectItem key={departamento.id} value={departamento.id}>
+                        {departamento.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Select
+                    label="Provincia"
+                    selectedKeys={formData.provincia_rural ? [formData.provincia_rural] : []}
+                    onChange={(e) => handleProvinciaChange(e.target.value)}
+                    isLoading={cargandoUbicaciones}
+                    isDisabled={!formData.departamento_rural}
+                  >
+                    {provincias.map((provincia) => (
+                      <SelectItem key={provincia.id} value={provincia.id}>
+                        {provincia.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Select
+                    label="Distrito"
+                    selectedKeys={formData.distrito_rural ? [formData.distrito_rural] : []}
+                    onChange={(e) => handleInputChange("distrito_rural", e.target.value)}
+                    isLoading={cargandoUbicaciones}
+                    isDisabled={!formData.provincia_rural}
+                  >
+                    {distritos.map((distrito) => (
+                      <SelectItem key={distrito.id} value={distrito.id}>
+                        {distrito.nombre}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Zona donde se encuentra el Predio Rural"
+                    value={formData.zona_predio_rural}
+                    onChange={(e) => handleInputChange("zona_predio_rural", e.target.value)}
+                  />
+                  <Input
+                    label="Nombre del Predio"
+                    value={formData.nombre_predio}
+                    onChange={(e) => handleInputChange("nombre_predio", e.target.value)}
+                  />
+                </div>
+
+                <Divider className="my-8"/>
+
+                <div>
+                  <h4 className="text-md font-semibold mb-4">Deducción del Predio</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="flex items-center space-x-2">
+                        <Input
+                          label="La deducción sería"
+                          value={formData.deduccion}
+                          onChange={(e) => handleInputChange("deduccion", e.target.value)}
+                        />
+                        <Select
+                          label="¿Se autoriza?"
+                          selectedKeys={formData.autoriza_deduccion ? [formData.autoriza_deduccion] : []}
+                          onChange={(e) => handleInputChange("autoriza_deduccion", e.target.value)}
+                          isLoading={cargandoOpcionesAutorizacion}
+                          isDisabled={!formData.deduccion}
+                        >
+                          {opcionesAutorizacion.map((opcionesAutorizacion) => (
+                            <SelectItem key={opcionesAutorizacion.id} value={opcionesAutorizacion.id}>
+                              {opcionesAutorizacion.nombre}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <Divider className="my-8"/>
+                <div>
+                  <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Uso del Predio Rural"
+                      value={formData.uso_predio_rural}
+                      onChange={(e) => handleInputChange("uso_predio_rural", e.target.value)}
+                    />
+                    <Select
+                      label="Estado del Predio"
+                      selectedKeys={formData.estado_predio_rural ? [formData.estado_predio_rural] : []}
+                      onChange={(e) => handleInputChange("estado_predio_rural", e.target.value)}
+                    >
+                      <SelectItem key="BUENO" value="BUENO">BUENO</SelectItem>
+                      <SelectItem key="REGULAR" value="REGULAR">REGULAR</SelectItem>
+                      <SelectItem key="MALO" value="MALO">MALO</SelectItem>
+                    </Select>
+                    <Select
+                      label="Clasificación del Predio"
+                      selectedKeys={formData.clasificacion_predio_rural ? [formData.clasificacion_predio_rural] : []}
+                      onChange={(e) => handleInputChange("clasificacion_predio_rural", e.target.value)}
+                      isLoading={cargandoTiposPredio}
+                    >
+                      {tiposPredio.map((tipoPredio) => (
+                        <SelectItem key={tipoPredio.id} value={tipoPredio.id}>
+                          {tipoPredio.nombre}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    <Select
+                      label="Condición del Predio"
+                      selectedKeys={formData.condicion_predio_rural ? [formData.condicion_predio_rural] : []}
+                      onChange={(e) => handleInputChange("condicion_predio_rural", e.target.value)}
+                    >
+                      <SelectItem key="PROPIO" value="PROPIO">PROPIO</SelectItem>
+                      <SelectItem key="ALQUILADO" value="ALQUILADO">ALQUILADO</SelectItem>
+                      <SelectItem key="PRESTADO" value="PRESTADO">PRESTADO</SelectItem>
+                    </Select>
+                  <Input
+                    label="Área del Terreno (HA)"
+                    type="number"
+                    value={formData.area_terreno_rural}
+                    onChange={(e) => handleInputChange("area_terreno_rural", e.target.value)}
+                  />
+                  <Input
+                    label="Grupo de Tierras"
+                    value={formData.grupo_tierras}
+                    onChange={(e) => handleInputChange("grupo_tierras", e.target.value)}
+                  />
+                  <Input
+                    label="Rango de Altitud"
+                    value={formData.rango_altitud}
+                    onChange={(e) => handleInputChange("rango_altitud", e.target.value)}
+                  />
+                  <Input
+                    label="Calidad Agrícola"
+                    value={formData.calidad_agricola}
+                    onChange={(e) => handleInputChange("calidad_agricola", e.target.value)}
+                  />
+                  <Input
+                    label="Valor por Categoría"
+                    value={formData.valor_categoria}
+                    onChange={(e) => handleInputChange("valor_categoria", e.target.value)}
+                  />
+                </div>
+               </div>
+              </CardBody>
+            </Card>
+          </div>
+        )}
+        </>
+        )}
+
+        {/* Características de construcción */}
+        {seccion === "construccion" && (
+          <Card className="mt-6">
+            <CardHeader>
+              <h4 className="font-bold">Información de construcciones</h4>
+            </CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
-                  label="Código"
-                  value={nuevaInstalacion.codigo}
+                  label="Nro. de Piso"
+                  value={formData.numero_piso}
+                  onChange={(e) => handleInputChange("numero_piso", e.target.value)}
+                />
+                <Input
+                  label="Sección de Piso"
+                  value={formData.seccion_piso}
+                  onChange={(e) => handleInputChange("seccion_piso", e.target.value)}
+                />
+                <Input
+                  label="Fecha de Construcción"
+                  type="date"
+                  value={formData.fecha_construccion}
                   onChange={(e) =>
-                    handleInstalacionChange("codigo", e.target.value)
+                    handleInputChange("fecha_construccion", e.target.value)
                   }
                 />
                 <Input
-                  label="Descripción"
-                  value={nuevaInstalacion.descripcion}
+                  label="Material Estructural Predominante (MEP)"
+                  value={formData.material_estructural_predominante}
                   onChange={(e) =>
-                    handleInstalacionChange("descripcion", e.target.value)
+                    handleInputChange("material_estructural_predominante", e.target.value)
                   }
                 />
                 <Input
-                  label="Uso"
-                  value={nuevaInstalacion.uso}
+                  label="Estado Conservación Acabados (ECC)"
+                  value={formData.estado_conservacion_acabados}
                   onChange={(e) =>
-                    handleInstalacionChange("uso", e.target.value)
-                  }
-                />
-                <Input
-                  label="MEP"
-                  value={nuevaInstalacion.material_estructural_predominante}
-                  onChange={(e) =>
-                    handleInstalacionChange(
-                      "material_estructural_predominante",
-                      e.target.value
-                    )
-                  }
-                />
-                <Input
-                  label="ECC"
-                  value={nuevaInstalacion.estado_conservacion_acabados}
-                  onChange={(e) =>
-                    handleInstalacionChange(
+                    handleInputChange(
                       "estado_conservacion_acabados",
                       e.target.value
                     )
                   }
                 />
                 <Input
-                  label="ECS"
-                  value={nuevaInstalacion.estado_conservacion_estructura}
+                  label="Estado Conservación Estructura (ECS)"
+                  value={formData.estado_conservacion_estructura}
                   onChange={(e) =>
-                    handleInstalacionChange(
+                    handleInputChange(
                       "estado_conservacion_estructura",
                       e.target.value
                     )
                   }
                 />
                 <Input
-                  label="Fecha de Construcción"
-                  type="date"
-                  value={nuevaInstalacion.fecha_construccion}
+                  label="Unidad de Medida de Construcción (UCA)"
+                  value={formData.unidad_medida_construccion}
                   onChange={(e) =>
-                    handleInstalacionChange(
-                      "fecha_construccion",
+                    handleInputChange("unidad_medida_construccion", e.target.value)
+                  }
+                />
+                <Input
+                  label="Muros/Columnas"
+                  value={formData.muros}
+                  onChange={(e) =>
+                    handleInputChange("muros", e.target.value)
+                  }
+                />
+                <Input
+                  label="Techos"
+                  value={formData.techos}
+                  onChange={(e) =>
+                    handleInputChange("techos", e.target.value)
+                  }
+                />
+                <Input
+                  label="Pisos"
+                  value={formData.pisos}
+                  onChange={(e) =>
+                    handleInputChange("pisos", e.target.value)
+                  }
+                />
+                <Input
+                  label="Revestimiento"
+                  value={formData.revestimiento}
+                  onChange={(e) =>
+                    handleInputChange("revestimiento", e.target.value)
+                  }
+                />
+                <Input
+                  label="Baños"
+                  value={formData.banios}
+                  onChange={(e) => handleInputChange("banios", e.target.value)}
+                />
+                <Input
+                  label="Instalaciones Eléctricas Sanitarias"
+                  value={formData.instalaciones_electricas}
+                  onChange={(e) =>
+                    handleInputChange("instalaciones_electricas", e.target.value)
+                  }
+                />
+                <Input
+                  label="Área Construida Declarada"
+                  value={formData.area_construida_declarada}
+                  onChange={(e) =>
+                    handleInputChange("area_construida_declarada", e.target.value)
+                  }
+                />
+                <Input
+                  label="Área Construida Verificada"
+                  value={formData.area_construida_verificada}
+                  onChange={(e) =>
+                    handleInputChange("area_construida_verificada", e.target.value)
+                  }
+                />
+              </div>
+
+              <Divider className="my-8"/>
+
+              <div>
+                <h4 className="text-md font-semibold mb-4">Información para el Calculo</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                  label="Valor Unitario (M2)"
+                  value={formData.valor_unitario}
+                  onChange={(e) => handleInputChange("valor_unitario", e.target.value)}
+                />
+                <Input
+                  label="Depreciación"
+                  value={formData.depreciacion}
+                  onChange={(e) => handleInputChange("depreciacion", e.target.value)}
+                />
+                <Input
+                  label="Valor Unitario Depreciado"
+                  value={formData.valor_unitario_depreciado}
+                  onChange={(e) =>
+                    handleInputChange("valor_unitario_depreciado", e.target.value)
+                  }
+                />
+                <Input
+                  label="Área Construida (M2)"
+                  value={formData.material_estructural_predominante}
+                  onChange={(e) =>
+                    handleInputChange("material_estructural_predominante", e.target.value)
+                  }
+                />
+                <Input
+                  label="Valor Total de Áreas Construidas"
+                  value={formData.valor_total_areas}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "valor_total_areas",
                       e.target.value
                     )
                   }
                 />
                 <Input
-                  label="Unidad de Medida"
-                  value={nuevaInstalacion.unidad_medida}
+                  label="Valor de Construcción por Piso"
+                  value={formData.valor_construccion_piso}
                   onChange={(e) =>
-                    handleInstalacionChange("unidad_medida", e.target.value)
+                    handleInputChange(
+                      "valor_construccion_piso",
+                      e.target.value
+                    )
                   }
                 />
                 <Input
-                  label="UCA"
-                  value={nuevaInstalacion.unidad_medida_construccion}
-                  onChange={(e) => 
-                    handleInstalacionChange("unidad_medida_construccion", e.target.value)
-                  }
-                />
-                <Input
-                  label="% Valor Bien Común"
-                  value={nuevaInstalacion.valor_bien_comun}
+                  label="Valor Total de Construcción"
+                  value={formData.valor_total_construccion}
                   onChange={(e) =>
-                    handleInstalacionChange("valor_bien_comun", e.target.value)
+                    handleInputChange("valor_total_construccion", e.target.value)
                   }
                 />
-                <Input
-                  label="Largo"
-                  value={nuevaInstalacion.largo}
-                  onChange={(e) =>
-                    handleInstalacionChange("largo", e.target.value)
-                  }
-                />
-                <Input
-                  label="Ancho"
-                  value={nuevaInstalacion.ancho}
-                  onChange={(e) =>
-                    handleInstalacionChange("ancho", e.target.value)
-                  }
-                />
-                <Input
-                  label="Alto"
-                  value={nuevaInstalacion.alto}
-                  onChange={(e) =>
-                    handleInstalacionChange("alto", e.target.value)
-                  }
-                />
-                <Input
-                  label="Total"
-                  value={nuevaInstalacion.total}
-                  onChange={(e) =>
-                    handleInstalacionChange("total", e.target.value)
-                  }
-                />
-                <div className="md:col-span-3">
-                  <Button onPress={agregarInstalacion} color="primary">
-                    Agregar Instalación
-                  </Button>
-                </div>
               </div>
+            </div>
+           </CardBody>
+          </Card>
+        )}
 
-              {/* Lista de instalaciones agregadas */}
-              {formData.otras_instalaciones.length > 0 && (
-                <div className="mt-4">
-                  <h5 className="font-bold mb-2">Instalaciones Agregadas</h5>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse border border-#d1d5dc">
-                      <thead>
-                        <tr className="bg-#f3f4f6">
-                          <th className="border border-#d1d5dc p-2 text-left">
-                            Código
-                          </th>
-                          <th className="border border-#d1d5dc p-2 text-left">
-                            Descripción
-                          </th>
-                          <th className="border border-#d1d5dc p-2 text-left">
-                            Uso
-                          </th>
-                          <th className="border border-#d1d5dc p-2 text-left">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {formData.otras_instalaciones.map(
-                          (instalacion, index) => (
-                            <tr key={index}>
-                              <td className="border border-#d1d5dc p-2">
-                                {instalacion.codigo}
-                              </td>
-                              <td className="border border-#d1d5dc p-2">
-                                {instalacion.descripcion}
-                              </td>
-                              <td className="border border-#d1d5dc p-2">
-                                {instalacion.uso}
-                              </td>
-                              <td className="border border-#d1d5dc p-2">
-                                <Button
-                                  size="sm"
-                                  color="danger"
-                                  onPress={() => eliminarInstalacion(index)}
-                                >
-                                  Eliminar
-                                </Button>
-                              </td>
-                            </tr>
-                          )
-                        )}
-                      </tbody>
-                    </table>
+        {/* Otras instalaciones */}
+        {seccion === "instalaciones" && (
+          <Card className="mt-6">
+            <CardHeader>
+              <h4 className="font-bold">Otras Instalaciones</h4>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-4">
+                {/* Formulario para agregar nueva instalación */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-#f9fafb rounded-lg">
+                  <Input
+                    label="Código"
+                    value={nuevaInstalacion.codigo}
+                    onChange={(e) =>
+                      handleInstalacionChange("codigo", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="Descripción"
+                    value={nuevaInstalacion.descripcion}
+                    onChange={(e) =>
+                      handleInstalacionChange("descripcion", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="Uso"
+                    value={nuevaInstalacion.uso}
+                    onChange={(e) =>
+                      handleInstalacionChange("uso", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="MEP"
+                    value={nuevaInstalacion.material_estructural_predominante}
+                    onChange={(e) =>
+                      handleInstalacionChange(
+                        "material_estructural_predominante",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <Input
+                    label="ECC"
+                    value={nuevaInstalacion.estado_conservacion_acabados}
+                    onChange={(e) =>
+                      handleInstalacionChange(
+                        "estado_conservacion_acabados",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <Input
+                    label="ECS"
+                    value={nuevaInstalacion.estado_conservacion_estructura}
+                    onChange={(e) =>
+                      handleInstalacionChange(
+                        "estado_conservacion_estructura",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <Input
+                    label="Fecha de Construcción"
+                    type="date"
+                    value={nuevaInstalacion.fecha_construccion}
+                    onChange={(e) =>
+                      handleInstalacionChange(
+                        "fecha_construccion",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <Input
+                    label="Unidad de Medida"
+                    value={nuevaInstalacion.unidad_medida}
+                    onChange={(e) =>
+                      handleInstalacionChange("unidad_medida", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="UCA"
+                    value={nuevaInstalacion.unidad_medida_construccion}
+                    onChange={(e) => 
+                      handleInstalacionChange("unidad_medida_construccion", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="% Valor Bien Común"
+                    value={nuevaInstalacion.valor_bien_comun}
+                    onChange={(e) =>
+                      handleInstalacionChange("valor_bien_comun", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="Largo"
+                    value={nuevaInstalacion.largo}
+                    onChange={(e) =>
+                      handleInstalacionChange("largo", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="Ancho"
+                    value={nuevaInstalacion.ancho}
+                    onChange={(e) =>
+                      handleInstalacionChange("ancho", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="Alto"
+                    value={nuevaInstalacion.alto}
+                    onChange={(e) =>
+                      handleInstalacionChange("alto", e.target.value)
+                    }
+                  />
+                  <Input
+                    label="Total"
+                    value={nuevaInstalacion.total}
+                    onChange={(e) =>
+                      handleInstalacionChange("total", e.target.value)
+                    }
+                  />
+                  <div className="md:col-span-3">
+                    <Button onPress={agregarInstalacion} color="primary">
+                      Agregar Instalación
+                    </Button>
                   </div>
                 </div>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-      )}
 
-      {/* Botones de acción */}
-      <div className="flex gap-2 mt-6">
-        <Button onPress={handleVolver} color="default">
-          Volver
-        </Button>
-        <Button onPress={guardarDeclaracion} color="success">
-          Guardar Declaración Jurada
-        </Button>
+                {/* Lista de instalaciones agregadas */}
+                {formData.otras_instalaciones.length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="font-bold mb-2">Instalaciones Agregadas</h5>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full border-collapse border border-#d1d5dc">
+                        <thead>
+                          <tr className="bg-#f3f4f6">
+                            <th className="border border-#d1d5dc p-2 text-left">
+                              Código
+                            </th>
+                            <th className="border border-#d1d5dc p-2 text-left">
+                              Descripción
+                            </th>
+                            <th className="border border-#d1d5dc p-2 text-left">
+                              Uso
+                            </th>
+                            <th className="border border-#d1d5dc p-2 text-left">
+                              Acciones
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {formData.otras_instalaciones.map(
+                            (instalacion, index) => (
+                              <tr key={index}>
+                                <td className="border border-#d1d5dc p-2">
+                                  {instalacion.codigo}
+                                </td>
+                                <td className="border border-#d1d5dc p-2">
+                                  {instalacion.descripcion}
+                                </td>
+                                <td className="border border-#d1d5dc p-2">
+                                  {instalacion.uso}
+                                </td>
+                                <td className="border border-#d1d5dc p-2">
+                                  <Button
+                                    size="sm"
+                                    color="danger"
+                                    onPress={() => eliminarInstalacion(index)}
+                                  >
+                                    Eliminar
+                                  </Button>
+                                </td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Botones de acción */}
+        <div className="flex gap-2 mt-6">
+          <Button onPress={handleVolver} color="default">
+            Volver
+          </Button>
+          <Button
+            color="success"
+            onPress={guardarDeclaracion}
+            isDisabled={guardando}
+            isLoading={guardando}
+            spinner={<Spinner color="white" size="sm" />}
+          >
+            {guardando ? "Guardando..." : "Guardar Declaración Jurada"}
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
