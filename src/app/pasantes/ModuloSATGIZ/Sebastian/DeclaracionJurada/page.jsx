@@ -49,6 +49,14 @@ export default function DeclaracionJurada() {
   const [tiposDenominacion, setTiposDenominacion] = useState([]);
   const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
 
+  // Estados para clasificaciones de USO
+  const [clasificacionesUso, setClasificacionesUso] = useState([]);
+  const [cargandoClasificacionesUso, setCargandoClasificacionesUso] = useState(false);
+
+// Estados para códigos de uso
+const [codigosUso, setCodigosUso] = useState([]);
+const [cargandoCodigosUso, setCargandoCodigosUso] = useState(false);
+
   // Estado para errores de validación  
   const [errores, setErrores] = useState({});
 
@@ -58,7 +66,7 @@ export default function DeclaracionJurada() {
   // Estados para el formulario de nueva declaración
   const [formData, setFormData] = useState({
     // Datos básicos
-    tipo_predio: "URBANO",
+    tipo_predio: "PREDIO URBANO",
     periodo: new Date().getFullYear().toString(),
 
     // Datos del predio urbano
@@ -147,7 +155,7 @@ const validarFormulario = () => {
   }
 
   // Validar predio urbano
-  if (formData.tipo_predio === "URBANO") {
+  if (formData.tipo_predio === "PREDIO URBANO") {
     if (!formData.departamento) {
       errores.departamento = "El departamento es requerido";
     }
@@ -169,7 +177,7 @@ const validarFormulario = () => {
   }
 
   // Validar predio rural
-  if (formData.tipo_predio === "RURAL") {
+  if (formData.tipo_predio === "PREDIO RURAL") {
     if (!formData.departamento_rural) {
       errores.departamento_rural = "El departamento es requerido";
     }
@@ -345,10 +353,29 @@ const validarFormulario = () => {
     cargarTiposDenominacion();
   }, []);
 
+  // Cargar clasificaciones de USO al montar el componente
+  useEffect(() => {
+  const cargarClasificacionesUso = async () => {
+    try {
+      setCargandoClasificacionesUso(true);
+      const clasificacionesUsoData = await DeclaracionJuradaService.obtenerClasificacionesUso();
+      console.log("Clasificaciones de USO cargadas:", clasificacionesUsoData);
+      setClasificacionesUso(clasificacionesUsoData);
+    } catch (error) {
+      console.error("Error al cargar clasificaciones de USO:", error);
+      // El servicio ya maneja datos temporales
+    } finally {
+      setCargandoClasificacionesUso(false);
+    }
+  };
+
+  cargarClasificacionesUso();
+}, []);
+
   // Manejar cambio de departamento - cargar provincias
   const handleDepartamentoChange = async (departamentoId) => {
     // Determinar si es para predio urbano o rural basado en el tipo de predio seleccionado
-    if (formData.tipo_predio === "URBANO") {
+    if (formData.tipo_predio === "PREDIO URBANO") {
       handleInputChange("departamento", departamentoId);
       // Limpiar provincias y distritos anteriores
       setProvincias([]);
@@ -394,7 +421,7 @@ const validarFormulario = () => {
   // Manejar cambio de provincia - cargar distritos
   const handleProvinciaChange = async (provinciaId) => {
     // Determinar si es para predio urbano o rural basado en el tipo de predio seleccionado
-    if (formData.tipo_predio === "URBANO") {
+    if (formData.tipo_predio === "PREDIO URBANO") {
       handleInputChange("provincia", provinciaId);
       // Limpiar distritos anteriores
       setDistritos([]);
@@ -576,6 +603,8 @@ const validarFormulario = () => {
 
   // Guardar declaración jurada usando servicios SATGIZ directamente
   const guardarDeclaracion = async () => {
+    console.log("Acá está el código")
+    console.log(formData.tipo_predio); 
     try {
       setGuardando(true); // 🔒 Bloquear el botón
       console.log("📝 Iniciando guardado de declaración jurada...");
@@ -601,7 +630,7 @@ const validarFormulario = () => {
         c_anio_liquidacion: formData.periodo?.toString() || new Date().getFullYear().toString(),
         c_num_id: contribuyenteSeleccionado.id.toString(),
         c_contribuyente_principal: contribuyenteSeleccionado.nombre || "N/A",
-        c_tipo_predio: formData.tipo_predio || "URBANO",
+        c_tipo_predio: formData.tipo_predio || "PREDIO URBANO",
         c_estado: "PENDIENTE"
       };
 
@@ -619,7 +648,7 @@ const validarFormulario = () => {
       console.log("✅ Declaración principal creada:", declaracionPrincipal);
 
       // 5️⃣ DATOS URBANOS (si aplica)
-      if (formData.tipo_predio === "URBANO") {
+      if (formData.tipo_predio === "PREDIO URBANO") {
         const datosUrbanosPayload = {
           c_uso_predio_urbano: formData.uso_predio_urbano || "",
           c_estado_predio: formData.estado_predio || "",
@@ -932,10 +961,10 @@ const validarFormulario = () => {
             onChange={(e) => handleInputChange("tipo_predio", e.target.value)}
             className="max-w-xs"
           >
-            <SelectItem key="URBANO" value="URBANO">
+            <SelectItem key="PREDIO URBANO" value="PREDIO URBANO">
               PREDIO URBANO
             </SelectItem>
-            <SelectItem key="RURAL" value="RURAL">
+            <SelectItem key="PREDIO RURAL" value="PREDIO RURAL">
               PREDIO RURAL
             </SelectItem>
           </Select>
@@ -966,7 +995,7 @@ const validarFormulario = () => {
         {/* Formulario según tipo de predio */}
         {seccion === "predio" && (
           <>
-            {formData.tipo_predio === "URBANO" ? (
+            {formData.tipo_predio === "PREDIO URBANO" ? (
               <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -1114,11 +1143,18 @@ const validarFormulario = () => {
                 <div>
                   <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
+                    <Select
                       label="Uso del Predio Urbano"
-                      value={formData.uso_predio_urbano}
+                      selectedKeys={formData.uso_predio_urbano ? [formData.uso_predio_urbano] : []}
                       onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
-                    />
+                      isLoading={cargandoClasificacionesUso}
+                    >
+                      {clasificacionesUso.map((clasificacionUso) => (
+                        <SelectItem key={clasificacionUso.id} value={clasificacionUso.id}>
+                          {clasificacionUso.nombre}
+                        </SelectItem>
+                      ))}
+                    </Select>
                     <Select
                       label="Estado del Predio"
                       selectedKeys={formData.estado_predio ? [formData.estado_predio] : []}

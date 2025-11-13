@@ -187,8 +187,8 @@ export class DeclaracionJuradaService {
 
     if (!data.c_num_documento || data.c_num_documento.trim() === '') {
       errors.c_num_documento = 'El número de documento es obligatorio';
-    } else if (data.c_num_documento.length > 15) {
-      errors.c_num_documento = 'El número de documento no puede exceder 15 caracteres';
+    } else if (data.c_num_documento.length > 8) {
+      errors.c_num_documento = 'El número de documento no puede exceder 8 caracteres';
     }
 
     if (!data.c_contribuyente_principal || data.c_contribuyente_principal.trim() === '') {
@@ -199,8 +199,8 @@ export class DeclaracionJuradaService {
 
     if (!data.c_tipo_predio || data.c_tipo_predio.trim() === '') {
       errors.c_tipo_predio = 'El tipo de predio es obligatorio';
-    } else if (data.c_tipo_predio.length > 10) {
-      errors.c_tipo_predio = 'El tipo de predio no puede exceder 10 caracteres';
+    } else if (data.c_tipo_predio.length > 20) {
+      errors.c_tipo_predio = 'El tipo de predio no puede exceder 20 caracteres';
     }
 
     return {

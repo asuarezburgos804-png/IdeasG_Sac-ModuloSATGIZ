@@ -51,6 +51,7 @@ class DeclaracionJuradaService {
     //  DATOS TEMPORALES PARA CONTRIBUYENTES (mientras desarrollas backend)
     this.contribuyentesTemp = [
       {
+        id: "1",
         c_codigo: "DJ-001-2024",
         c_tipo_contribuyente: "PERSONA NATURAL",
         c_nombre: "JUAN CARLOS PEREZ GARCIA",
@@ -620,13 +621,84 @@ class DeclaracionJuradaService {
   }
 
   async obtenerClasificacionesUso() {
-    try {
-      return await fetchClasifUso();
-    } catch (error) {
-      console.error("Error al obtener clasificaciones de uso:", error);
-      return [];
+  try {
+    console.log("🔄 Obteniendo clasificaciones de USO...");
+    
+    // Agregar timeout
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout después de 3 segundos')), 3000)
+    );
+    
+    const clasificacionesUsoPromise = fetchClasifUso();
+    const data = await Promise.race([clasificacionesUsoPromise, timeoutPromise]);
+    
+    console.log("✅ Clasificaciones de USO obtenidas:", data);
+    
+    // Asegurar formato correcto
+    if (Array.isArray(data)) {
+      return data.map(item => ({
+        id: item.id || item.value || item.codigo || "0",
+        nombre: item.nombre || item.label || item.descripcion || "Sin nombre"
+      }));
     }
+    
+    return data;
+    
+  } catch (error) {
+    console.warn("❌ Error al obtener clasificaciones de USO, usando datos temporales:", error);
+    
+    // ✅ DATOS TEMPORALES PARA CLASIFICACIÓN DE USO
+    return [
+      { id: "01", nombre: "VIVIENDA UNIFAMILIAR" },
+      { id: "02", nombre: "VIVIENDA MULTIFAMILIAR" },
+      { id: "03", nombre: "COMERCIO" },
+      { id: "04", nombre: "OFICINAS" },
+      { id: "05", nombre: "INDUSTRIA" },
+      { id: "06", nombre: "ALMACÉN" },
+      { id: "07", nombre: "EDUCACIÓN" },
+      { id: "08", nombre: "SALUD" },
+      { id: "09", nombre: "CULTURAL" },
+      { id: "10", nombre: "DEPORTIVO" },
+      { id: "11", nombre: "AGRÍCOLA" },
+      { id: "12", nombre: "GANADERO" }
+    ];
   }
+}
+
+  async obtenerCodigosUsoPredio() {
+  try {
+    console.log("🔄 Obteniendo códigos de uso de predio...");
+    
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout después de 3 segundos')), 3000)
+    );
+    
+    const codigosUsoPromise = fetchCodUsoPredio();
+    const data = await Promise.race([codigosUsoPromise, timeoutPromise]);
+    
+    console.log("✅ Códigos de uso de predio obtenidos:", data);
+    
+    if (Array.isArray(data)) {
+      return data.map(item => ({
+        id: item.id || item.value || item.codigo || "0",
+        nombre: item.nombre || item.label || item.descripcion || "Sin nombre"
+      }));
+    }
+    
+    return data;
+    
+  } catch (error) {
+    console.warn("❌ Error al obtener códigos de uso de predio, usando datos temporales:", error);
+    
+    return [
+      { id: "01", nombre: "RESIDENCIAL" },
+      { id: "02", nombre: "COMERCIAL" },
+      { id: "03", nombre: "INDUSTRIAL" },
+      { id: "04", nombre: "AGRÍCOLA" },
+      { id: "05", nombre: "ESPECIAL" }
+    ];
+  }
+}
 
   async obtenerFormasAdquisicion() {
     try {
@@ -941,15 +1013,6 @@ class DeclaracionJuradaService {
     }
   }
 
-  async obtenerClasificacionesPredio() {
-    try {
-      return await fetchClasifPredio();
-    } catch (error) {
-      console.error("Error al obtener clasificaciones de predio:", error);
-      return [];
-    }
-  }
-
   async obtenerPrediosCatastralesEn() {
     try {
       return await fetchPredioCatEn();
@@ -962,22 +1025,69 @@ class DeclaracionJuradaService {
   // ========== MÉTODOS ESPECÍFICOS PARA TIPOS DE PREDIO Y DENOMINACIÓN ==========
 
   async obtenerClasificacionesPredio() {
-    try {
-      return await fetchClasifPredio();
-    } catch (error) {
-      console.error("Error al obtener clasificaciones de predio:", error);
-      return [];
+  try {
+    console.log("🔄 Obteniendo clasificaciones de predio...");
+    
+    // Agregar timeout para evitar que se quede cargando indefinidamente
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout después de 3 segundos')), 3000)
+    );
+    
+    const clasificacionesPromise = fetchClasifPredio();
+    const data = await Promise.race([clasificacionesPromise, timeoutPromise]);
+    
+    console.log("✅ Clasificaciones de predio obtenidas:", data);
+    
+    // Asegurar que los datos tengan el formato correcto
+    if (Array.isArray(data)) {
+      return data.map(item => ({
+        id: item.id || item.value || item.codigo || "0",
+        nombre: item.nombre || item.label || item.descripcion || "Sin nombre"
+      }));
     }
+    
+    return data;
+    
+  } catch (error) {
+    console.warn("❌ Error al obtener clasificaciones de predio, usando datos temporales:", error);
+    
+    // DATOS TEMPORALES MEJORADOS Y MÁS REALISTAS
+    return [
+      { id: "01", nombre: "RESIDENCIAL" },
+      { id: "02", nombre: "COMERCIAL" },
+      { id: "03", nombre: "INDUSTRIAL" },
+      { id: "04", nombre: "AGRÍCOLA" },
+      { id: "05", nombre: "EDUCATIVO" },
+      { id: "06", nombre: "SALUD" },
+      { id: "07", nombre: "GUBERNAMENTAL" },
+      { id: "08", nombre: "ESPECIAL" },
+      { id: "09", nombre: "MIXTO" },
+      { id: "10", nombre: "OTRO" }
+    ];
   }
+}
 
   async obtenerTiposDenominacion() {
-    try {
-      return await fetchTipoDoc();
-    } catch (error) {
-      console.error("Error al obtener tipos de denominación:", error);
-      return [];
-    }
-  }
+  console.log("📋 Cargando tipos de denominación desde datos temporales");
+  
+  return [
+    { id: "01", nombre: "EDIFICIO" },
+    { id: "02", nombre: "CONDOMINIO" },
+    { id: "03", nombre: "TORRE" },
+    { id: "04", nombre: "CENTRO COMERCIAL" },
+    { id: "05", nombre: "GALERÍA" },
+    { id: "06", nombre: "RESIDENCIAL" },
+    { id: "07", nombre: "OFICINAS" },
+    { id: "08", nombre: "LOCAL COMERCIAL" },
+    { id: "09", nombre: "DEPARTAMENTO" },
+    { id: "10", nombre: "CASA" },
+    { id: "11", nombre: "BUNGALOW" },
+    { id: "12", nombre: "DÚPLEX" },
+    { id: "13", nombre: "TRÍPLEX" },
+    { id: "14", nombre: "PENTHOUSE" },
+    { id: "15", nombre: "LOFT" }
+  ];
+}
 
   // ========== MÉTODOS ADICIONALES ÚTILES ==========
 
