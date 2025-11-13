@@ -49,14 +49,6 @@ export default function DeclaracionJurada() {
   const [tiposDenominacion, setTiposDenominacion] = useState([]);
   const [cargandoTiposDenominacion, setCargandoTiposDenominacion] = useState(false);
 
-  // Estados para clasificaciones de USO
-  const [clasificacionesUso, setClasificacionesUso] = useState([]);
-  const [cargandoClasificacionesUso, setCargandoClasificacionesUso] = useState(false);
-
-// Estados para códigos de uso
-const [codigosUso, setCodigosUso] = useState([]);
-const [cargandoCodigosUso, setCargandoCodigosUso] = useState(false);
-
   // Estado para errores de validación  
   const [errores, setErrores] = useState({});
 
@@ -352,25 +344,6 @@ const validarFormulario = () => {
 
     cargarTiposDenominacion();
   }, []);
-
-  // Cargar clasificaciones de USO al montar el componente
-  useEffect(() => {
-  const cargarClasificacionesUso = async () => {
-    try {
-      setCargandoClasificacionesUso(true);
-      const clasificacionesUsoData = await DeclaracionJuradaService.obtenerClasificacionesUso();
-      console.log("Clasificaciones de USO cargadas:", clasificacionesUsoData);
-      setClasificacionesUso(clasificacionesUsoData);
-    } catch (error) {
-      console.error("Error al cargar clasificaciones de USO:", error);
-      // El servicio ya maneja datos temporales
-    } finally {
-      setCargandoClasificacionesUso(false);
-    }
-  };
-
-  cargarClasificacionesUso();
-}, []);
 
   // Manejar cambio de departamento - cargar provincias
   const handleDepartamentoChange = async (departamentoId) => {
@@ -1141,18 +1114,11 @@ const validarFormulario = () => {
                 <div>
                   <h4 className="text-md font-semibold mb-4">Datos del Predio (uso, estado, tipo)</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select
+                    <Input
                       label="Uso del Predio Urbano"
-                      selectedKeys={formData.uso_predio_urbano ? [formData.uso_predio_urbano] : []}
+                      value={formData.uso_predio_urbano}
                       onChange={(e) => handleInputChange("uso_predio_urbano", e.target.value)}
-                      isLoading={cargandoClasificacionesUso}
-                    >
-                      {clasificacionesUso.map((clasificacionUso) => (
-                        <SelectItem key={clasificacionUso.id} value={clasificacionUso.id}>
-                          {clasificacionUso.nombre}
-                        </SelectItem>
-                      ))}
-                    </Select>
+                    />
                     <Select
                       label="Estado del Predio"
                       selectedKeys={formData.estado_predio ? [formData.estado_predio] : []}
